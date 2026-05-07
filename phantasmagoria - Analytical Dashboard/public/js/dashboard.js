@@ -421,12 +421,21 @@ function updateFilterChips(filters) {
     badge.style.display    = count ? 'inline' : 'none';
     badge.textContent      = count > 0 ? `${count} active` : '';
 
+    // Use data-filter-key instead of inline onclick (more reliable with dynamic HTML)
     chips.innerHTML = active.map(f => `
         <span class="filter-chip">
             ${f.label}
-            <button class="filter-chip-remove" onclick="removeFilter('${f.key}')" title="Remove">×</button>
+            <button class="filter-chip-remove" data-filter-key="${f.key}" title="Remove filter">&times;</button>
         </span>`).join('');
+
+    // Event delegation on the container — no inline handlers needed
+    chips.onclick = (e) => {
+        const btn = e.target.closest('.filter-chip-remove');
+        if (!btn) return;
+        removeFilter(btn.dataset.filterKey);
+    };
 }
+
 
 function removeFilter(selectId) {
     const el = document.getElementById(selectId);
