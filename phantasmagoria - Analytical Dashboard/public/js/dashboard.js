@@ -228,15 +228,37 @@ async function loadAnalyticsCharts(filters = {}) {
 
     const rows = r => Array.isArray(r.data) ? r.data : (r.data?.data || []);
 
-    renderAHBar('aIndustryChart',  rows(indRes),  r => r.sector,           r => r.count,  false);
-    renderAHBar('aJobTitlesChart', rows(jobRes),  r => r.title || r.role,  r => r.count,  true);
-    renderAHBar('aEmployersChart', rows(empRes),  r => r.company,          r => r.count,  true);
+    renderADoughnut('aIndustryChart', rows(indRes),  r => r.sector,          r => r.count);
+    renderAHBar('aJobTitlesChart',    rows(jobRes),  r => r.title || r.role, r => r.count,  true);
+    renderAHBar('aEmployersChart',    rows(empRes),  r => r.company,         r => r.count,  true);
     renderASkillsGap('aSkillsGapChart', skillsRes.data || {});
     renderACertTypes('aCertTypesChart', skillsRes.data || {});
     renderAEmpStatus('aEmpStatusChart', statusRes.data || {});
 }
 
-// Horizontal or vertical bar chart helper
+// Doughnut chart (industry distribution, cert types, etc.)
+function renderADoughnut(canvasId, rows, labelFn, valueFn) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#92400e','#fcd34d','#fde68a','#78350f','#fed7aa','#fdba74'];
+    const hasData = rows.length > 0;
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: hasData ? rows.map(labelFn) : ['No data'],
+            datasets: [{ data: hasData ? rows.map(valueFn) : [1],
+                backgroundColor: palette, borderWidth: 0, hoverOffset: 10 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 } } },
+            cutout: '68%'
+        }
+    });
+}
+
+// Horizontal bar chart (job titles, employers)
 function renderAHBar(canvasId, rows, labelFn, valueFn, horizontal) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
@@ -261,30 +283,37 @@ function renderAHBar(canvasId, rows, labelFn, valueFn, horizontal) {
     });
 }
 
-// Skills Gap — top certifications as a bar chart (actual live data)
+// Skills Gap — radar chart using top certifications as axes
 function renderASkillsGap(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
-    const certs = (data.certifications || []).slice(0, 10);
+    const certs = (data.certifications || []).slice(0, 8);
     const hasData = certs.length > 0;
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'bar',
+        type: 'radar',
         data: {
-            labels: hasData ? certs.map(c => c.title) : ['No certifications'],
-            datasets: [{ label: 'Alumni with cert', data: hasData ? certs.map(c => c.count) : [0],
-                backgroundColor: ['#fbbf24','#f59e0b','#d97706','#b45309','#92400e',
-                                  '#fcd34d','#fde68a','#fef3c7','#fed7aa','#fdba74'],
-                borderRadius: 6 }]
+            labels: hasData ? certs.map(c => c.title) : ['No data'],
+            datasets: [{
+                label: 'Alumni with Certification',
+                data: hasData ? certs.map(c => c.count) : [0],
+                borderColor: '#fbbf24',
+                backgroundColor: 'rgba(251,191,36,0.18)',
+                pointBackgroundColor: '#fbbf24',
+                borderWidth: 2
+            }]
         },
         options: {
-            indexAxis: 'y',
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
             scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
-                y: { grid: { display: false } }
-            }
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.06)' },
+                    grid:       { color: 'rgba(255,255,255,0.06)' },
+                    pointLabels:{ color: '#94a3b8', font: { size: 11 } },
+                    ticks:      { display: false, beginAtZero: true }
+                }
+            },
+            plugins: { legend: { display: false } }
         }
     });
 }
