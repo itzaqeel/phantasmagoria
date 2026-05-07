@@ -397,32 +397,38 @@ function renderAEmpStatus(canvasId, data) {
     });
 }
 
-// 7. Line + fill (Area) — Graduation Trends
+// 7. Scatter — Graduation Trends (year vs graduate count)
 function renderAGradTrends(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
-    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
-    gradient.addColorStop(0, 'rgba(251,191,36,0.45)');
-    gradient.addColorStop(1, 'rgba(251,191,36,0)');
     const hasData = data.labels?.length > 0;
+    const points  = hasData
+        ? data.labels.map((yr, i) => ({ x: Number(yr) || i + 1, y: data.values[i] }))
+        : [{ x: 2024, y: 0 }];
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'line',
+        type: 'scatter',
         data: {
-            labels: hasData ? data.labels : ['No data'],
-            datasets: [{ label: 'Graduates', data: hasData ? data.values : [0],
-                borderColor: '#fbbf24', backgroundColor: gradient,
-                fill: true, tension: 0.4,
-                pointBackgroundColor: '#fbbf24', pointRadius: 6, pointHoverRadius: 9,
-                borderWidth: 2 }]
+            datasets: [{
+                label: 'Graduates',
+                data: points,
+                backgroundColor: 'rgba(251,191,36,0.75)',
+                borderColor: '#fbbf24',
+                borderWidth: 2,
+                pointRadius: 10,
+                pointHoverRadius: 14
+            }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             layout: { padding: 20 },
             plugins: { legend: { display: false } },
             scales: {
-                x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
-                y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, ticks: { color: '#94a3b8' } }
+                x: { type: 'linear', grid: { color: 'rgba(255,255,255,0.04)' },
+                     ticks: { color: '#94a3b8', stepSize: 1,
+                              callback: v => Number.isInteger(v) ? v : '' } },
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' },
+                     ticks: { color: '#94a3b8', stepSize: 1 } }
             }
         }
     });
