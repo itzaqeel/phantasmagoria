@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const titleMap = {
                 'overview': 'University Intelligence Overview',
                 'alumni': 'Detailed Alumni Analysis',
-                'bidding': 'Blind Bidding Trends',
                 'profile': 'My Account & Identity'
             };
             document.getElementById('view-title').textContent = titleMap[view] || 'Dashboard';
@@ -34,6 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (view === 'profile') {
                 renderProfileData();
+            }
+            if (view === 'alumni') {
+                loadAlumniData();
             }
         });
     });
@@ -98,7 +100,6 @@ function updateStats(data) {
 
 function renderAllCharts(data) {
     renderDegreeChart(data.degreeDist);
-    renderBiddingChart(data.biddingTrends);
     renderGeoChart(data.geoDist);
     renderTopBiddersChart(data.topBidders);
     
@@ -133,38 +134,6 @@ function renderDegreeChart(data) {
     });
 }
 
-function renderBiddingChart(data) {
-    const ctx = document.getElementById('biddingChart').getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
-    gradient.addColorStop(1, 'rgba(251, 191, 36, 0)');
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: 'Bids Placed',
-                data: data.values,
-                borderColor: '#fbbf24',
-                backgroundColor: gradient,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointBackgroundColor: '#fbbf24'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
-                x: { grid: { display: false } }
-            }
-        }
-    });
-}
 
 function renderGeoChart(data) {
     const ctx = document.getElementById('geoChart').getContext('2d');
@@ -308,6 +277,12 @@ function renderEngagementChart(data) {
 function setupExportHandlers() {
     document.getElementById('btn-export-csv')?.addEventListener('click', () => exportToCSV());
     document.getElementById('btn-export-pdf')?.addEventListener('click', () => exportToPDF());
+    document.getElementById('btn-apply-filter')?.addEventListener('click', () => loadAlumniData());
+    document.getElementById('btn-clear-filter')?.addEventListener('click', () => {
+        document.getElementById('filter-programme').value = '';
+        document.getElementById('filter-year').value = '';
+        loadAlumniData();
+    });
 }
 
 function exportToCSV() {
@@ -341,6 +316,126 @@ function exportToPDF() {
     doc.text(`Total Revenue: GBP ${data.totalRevenue}`, 20, 65);
     
     doc.save("Phantasmagoria_Report.pdf");
+}
+
+// --- Alumni Analytics ---
+
+// Track chart instances so we can destroy and re-render on filter change
+const alumniCharts = {};
+
+async function loadAlumniData() {
+    const programme = document.getElementById('filter-programme')?.value.trim() || '';
+    const year = document.getElementById('filter-year')?.value.trim() || '';
+    const loadingEl = document.getElementById('alumni-loading');
+    if (loadingEl) loadingEl.style.display = 'inline';
+
+    const params = new URLSearchParams();
+    if (programme) params.set('programme', programme);
+    if (year) params.set('gradYear', year);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    // Fetch all alumni endpoints in parallel
+    const [employmentRes, jobTitlesRes, employersRes, geoRes, skillsRes] = await Promise.all([
+        API.get(`/analytics/employment-by-industry${qs}`),
+        API.get(`/analytics/top-job-titles${qs}`),
+        API.get(`/analytics/top-employers${qs}`),
+        API.get('/analytics/geographic'),
+        API.get('/analytics/skills-gap')
+    ]);
+
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    // The analytics proxy unwraps response.data.data, so these endpoints return arrays directly
+    const empData = Array.isArray(employmentRes.data) ? employmentRes.data : (employmentRes.data?.data || []);
+    if (employmentRes.ok && empData.length >= 0) {
+        renderAlumniBarChart('employmentChart', alumniCharts,
+            empData.map(r => r.sector || r.role || 'Unknown'),
+            empData.map(r => r.count),
+            'Alumni Count', true);
+    }
+
+    const jobData = Array.isArray(jobTitlesRes.data) ? jobTitlesRes.data : (jobTitlesRes.data?.data || []);
+    if (jobTitlesRes.ok && jobData.length >= 0) {
+        renderAlumniBarChart('jobTitlesChart', alumniCharts,
+            jobData.map(r => r.title || r.role || 'Unknown'),
+            jobData.map(r => r.count),
+            'Alumni Count', true);
+    }
+
+    const emprsData = Array.isArray(employersRes.data) ? employersRes.data : (employersRes.data?.data || []);
+    if (employersRes.ok && emprsData.length >= 0) {
+        renderAlumniBarChart('employersChart', alumniCharts,
+            emprsData.map(r => r.company || 'Unknown'),
+            emprsData.map(r => r.count),
+            'Alumni Count', false);
+    }
+
+    const geoData = Array.isArray(geoRes.data) ? geoRes.data : (geoRes.data?.data || []);
+    if (geoRes.ok && geoData.length >= 0) {
+        renderAlumniBarChart('geoAlumniChart', alumniCharts,
+            geoData.map(r => r.location || r.company || 'Unknown'),
+            geoData.map(r => r.count),
+            'Alumni Count', false);
+    }
+
+    // Render skills table (skills-gap is NOT unwrapped — returns {success, certifications, courses} directly)
+    const skillsData = skillsRes.data?.certifications ? skillsRes.data : (skillsRes.data?.data || skillsRes.data || {});
+    if (skillsRes.ok && skillsData) {
+        const tbody = document.getElementById('skills-table-body');
+        const combined = [
+            ...(skillsData.certifications || []),
+            ...(skillsData.courses || [])
+        ].sort((a, b) => b.count - a.count);
+
+        if (tbody) {
+            if (combined.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" style="padding: 2rem; text-align: center; color: var(--text-muted);">No certification or course data available yet.</td></tr>`;
+            } else {
+                tbody.innerHTML = combined.map((item, i) => `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.75rem 1rem;">
+                            <span style="display:inline-block; width:24px; height:24px; border-radius:50%; background:rgba(251,191,36,0.15); color:var(--accent); font-size:0.75rem; font-weight:700; text-align:center; line-height:24px; margin-right:0.75rem;">${i + 1}</span>
+                            ${item.title}
+                        </td>
+                        <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--accent);">${item.count}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+    }
+}
+
+function renderAlumniBarChart(canvasId, chartStore, labels, values, dataLabel, horizontal) {
+    // Destroy previous instance to avoid duplication
+    if (chartStore[canvasId]) {
+        chartStore[canvasId].destroy();
+    }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+
+    const hasData = values.length > 0;
+    chartStore[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: hasData ? labels : ['No data yet'],
+            datasets: [{
+                label: dataLabel,
+                data: hasData ? values : [0],
+                backgroundColor: '#fbbf24',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            indexAxis: horizontal ? 'y' : 'x',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+                y: { grid: { display: false } }
+            }
+        }
+    });
 }
 
 // --- Profile Logic ---

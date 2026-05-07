@@ -38,12 +38,7 @@
                         <span>Alumni Analytics</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-view="bidding">
-                        <span class="icon">🎯</span>
-                        <span>Bidding Trends</span>
-                    </a>
-                </li>
+
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-view="profile">
                         <span class="icon">👤</span>
@@ -117,13 +112,7 @@
                     <canvas id="degreeChart"></canvas>
                 </div>
 
-                <!-- Bidding Volume Over Time -->
-                <div class="card chart-container">
-                    <div class="chart-title">
-                        <span>Daily Bidding Volume</span>
-                    </div>
-                    <canvas id="biddingChart"></canvas>
-                </div>
+
 
                 <!-- Geographic Distribution -->
                 <div class="card chart-container">
@@ -173,6 +162,76 @@
                         <span>Platform Engagement Trends</span>
                     </div>
                     <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alumni Analytics View -->
+        <div id="view-alumni" class="dashboard-view hidden">
+            <!-- Filter Bar -->
+            <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Filter by Programme</span>
+                    <input type="text" id="filter-programme" class="form-input" placeholder="e.g. Computer Science" style="max-width: 220px;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Grad Year</span>
+                    <input type="number" id="filter-year" class="form-input" placeholder="e.g. 2023" style="max-width: 120px;">
+                    <button class="btn btn-primary btn-sm" id="btn-apply-filter">Apply Filter</button>
+                    <button class="btn btn-secondary btn-sm" id="btn-clear-filter">Clear</button>
+                    <span id="alumni-loading" style="display:none; font-size:0.85rem; color:var(--text-muted);">⏳ Loading...</span>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <!-- Employment by Industry -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Employment by Industry / Role</span>
+                        <span class="status-badge status-success">Live</span>
+                    </div>
+                    <canvas id="employmentChart"></canvas>
+                </div>
+
+                <!-- Top Job Titles -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Top Job Titles</span>
+                        <span class="status-badge status-warning">Live</span>
+                    </div>
+                    <canvas id="jobTitlesChart"></canvas>
+                </div>
+
+                <!-- Top Employers -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Top Employers</span>
+                    </div>
+                    <canvas id="employersChart"></canvas>
+                </div>
+
+                <!-- Geographic Distribution -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Employment Hubs (Geographic)</span>
+                    </div>
+                    <canvas id="geoAlumniChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Alumni Table -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="chart-title" style="margin-bottom: 1rem;"><span>Skills & Certifications Breakdown</span></div>
+                <div id="alumni-skills-table" style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <th style="text-align:left; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Certification / Course</th>
+                                <th style="text-align:right; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Alumni Count</th>
+                        </tr>
+                        </thead>
+                        <tbody id="skills-table-body">
+                            <tr><td colspan="2" style="padding: 2rem; text-align: center; color: var(--text-muted);">Loading data...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
