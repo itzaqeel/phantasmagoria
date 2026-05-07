@@ -236,30 +236,37 @@ async function loadAnalyticsCharts() {
     renderADegrees('aDegreeBubble',      overview.degreeDist       || { labels: [], values: [] });
 }
 
-// 1. Polar Area — Employment by Industry Sector
+// 1. Radar / Spider — Employment by Industry Sector
 function renderAIndustry(canvasId, rows) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
-    const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#92400e','#fcd34d','#fde68a','#78350f','#fed7aa','#fdba74'];
     const hasData = rows.length > 0;
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'polarArea',
+        type: 'radar',
         data: {
             labels: hasData ? rows.map(r => r.sector) : ['No data'],
-            datasets: [{ data: hasData ? rows.map(r => r.count) : [1],
-                backgroundColor: palette.map(c => c + 'bb'),
-                borderColor: palette, borderWidth: 1 }]
+            datasets: [{
+                label: 'Alumni Count',
+                data: hasData ? rows.map(r => r.count) : [0],
+                borderColor: '#fbbf24',
+                backgroundColor: 'rgba(251,191,36,0.15)',
+                pointBackgroundColor: '#fbbf24',
+                pointBorderColor: '#fbbf24',
+                pointRadius: 5,
+                borderWidth: 2
+            }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             layout: { padding: 20 },
             scales: { r: {
-                grid: { color: 'rgba(255,255,255,0.06)' },
-                ticks: { display: false, beginAtZero: true }
+                angleLines: { color: 'rgba(255,255,255,0.08)' },
+                grid:        { color: 'rgba(255,255,255,0.08)' },
+                pointLabels: { color: '#94a3b8', font: { size: 11 } },
+                ticks:       { display: false, beginAtZero: true }
             }},
-            plugins: { legend: { position: 'bottom',
-                labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 } } }
+            plugins: { legend: { display: false } }
         }
     });
 }
