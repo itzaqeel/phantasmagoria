@@ -156,7 +156,7 @@ async function login(req, res) {
         success: true,
         message: 'Login successful.',
         token,
-        user: { id: user.id, email: user.email, role: user.role },
+        user: { id: user.id, email: user.email, role: user.role, is_verified: user.is_verified },
       });
     });
 

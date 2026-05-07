@@ -1080,7 +1080,8 @@ async function renderProfileData() {
     if (avatar) avatar.textContent = (user.first_name ? user.first_name[0] : user.email[0]).toUpperCase();
 
     // Handle Verification Status UI
-    const isVerified = user.is_verified === 1 || user.is_verified === true;
+    // If undefined, assume true because the login controller blocks unverified users from getting a token.
+    const isVerified = user.is_verified === undefined ? true : (user.is_verified === 1 || user.is_verified === true);
     const resendBtn = document.getElementById('btn-resend-verify');
     const verifyStatusText = document.getElementById('verify-status-text');
     const verifyBadge = document.getElementById('verify-badge');
