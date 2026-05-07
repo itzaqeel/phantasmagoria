@@ -167,27 +167,41 @@ async function overview(req, res) {
     const [alumniCount] = await pool.query('SELECT COUNT(*) AS count FROM users WHERE role = "alumni" AND is_verified = 1');
     const [activeBids]  = await pool.query('SELECT COUNT(*) AS count FROM bids WHERE status = "active"');
     const [revenue]     = await pool.query('SELECT SUM(amount) AS total FROM bids WHERE status = "active"');
-    
-    // Aggregate data for standard charts to minimize multiple requests
+    const [certCount]   = await pool.query('SELECT COUNT(*) AS count FROM certifications');
+    const [degCount]    = await pool.query('SELECT COUNT(*) AS count FROM degrees');
+
+    // Degree distribution for Analytics charts
     const [degreeRows] = await pool.query('SELECT title, COUNT(*) as count FROM degrees GROUP BY title ORDER BY count DESC LIMIT 5');
-    
+
+    // Graduation trends — degrees grouped by completion year
+    const [gradTrends] = await pool.query(
+      `SELECT YEAR(completion_date) AS year, COUNT(*) AS count
+       FROM degrees WHERE completion_date IS NOT NULL
+       GROUP BY year ORDER BY year ASC`
+    );
+
     res.json({
       success: true,
       data: {
-        totalAlumni: alumniCount[0].count,
-        activeBids: activeBids[0].count,
-        totalRevenue: parseFloat(revenue[0].total || 0),
-        apiHits: 0, // Placeholder
+        totalAlumni:          alumniCount[0].count,
+        totalCertifications:  certCount[0].count,
+        totalDegrees:         degCount[0].count,
+        activeBids:           activeBids[0].count,
+        totalRevenue:         parseFloat(revenue[0].total || 0),
+        apiHits:              0,
         degreeDist: {
           labels: degreeRows.map(r => r.title),
           values: degreeRows.map(r => r.count)
         },
-        // Fallbacks for other mandatory data points
-        biddingTrends: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], values: [5,10,8,15,20,12,30] },
-        geoDist: { labels: ['UK', 'USA', 'SL', 'UAE'], values: [40, 20, 15, 10] },
-        topBidders: [],
-        industryGrowth: { labels: ['Tech', 'Fin'], values: [10, 5] },
-        skillsGap: { labels: ['A','B'], curriculum: [1,2], industry: [3,4] },
+        graduationTrends: {
+          labels: gradTrends.map(r => String(r.year)),
+          values: gradTrends.map(r => r.count)
+        },
+        // Fallbacks for other chart types
+        geoDist:          { labels: ['UK', 'USA', 'SL', 'UAE'], values: [40, 20, 15, 10] },
+        topBidders:       [],
+        industryGrowth:   { labels: ['Tech', 'Finance'], values: [10, 5] },
+        skillsGap:        { labels: ['A', 'B'], curriculum: [1, 2], industry: [3, 4] },
         salaryBenchmarks: { labels: ['2023'], values: [35000] },
         engagementTrends: { labels: ['W1'], values: [100] }
       }
@@ -197,6 +211,7 @@ async function overview(req, res) {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 }
+
 
 async function alumniList(req, res) {
   try {

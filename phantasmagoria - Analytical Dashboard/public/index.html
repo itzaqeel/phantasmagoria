@@ -33,6 +33,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="#" class="nav-link" data-view="analytics">
+                        <span class="icon">📈</span>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="#" class="nav-link" data-view="alumni">
                         <span class="icon">👥</span>
                         <span>Alumni</span>
@@ -78,58 +84,62 @@
 
         <!-- Views -->
         <div id="view-overview" class="dashboard-view">
-            <!-- Stats Overview Row -->
+            <!-- Stats Row: Alumni · Certifications · Degrees -->
             <div class="stats-grid">
                 <div class="card stat-card">
                     <div class="label">Total Alumni</div>
-                    <div class="value" id="stat-total-alumni">0</div>
-                    <div class="trend up">↑ 12% this month</div>
+                    <div class="value" id="stat-total-alumni">—</div>
+                    <div class="trend up">Verified registered users</div>
                 </div>
                 <div class="card stat-card">
-                    <div class="label">Active Bids</div>
-                    <div class="value" id="stat-active-bids">0</div>
-                    <div class="trend up">↑ 5% today</div>
+                    <div class="label">Certifications</div>
+                    <div class="value" id="stat-total-certs">—</div>
+                    <div class="trend text-muted">Across all profiles</div>
                 </div>
                 <div class="card stat-card">
-                    <div class="label">Total Sponsorships</div>
-                    <div class="value" id="stat-total-revenue">£0.00</div>
-                    <div class="trend up">↑ 8% this week</div>
-                </div>
-                <div class="card stat-card">
-                    <div class="label">API Consumption</div>
-                    <div class="value" id="stat-api-hits">0</div>
-                    <div class="trend text-muted">Last 24h</div>
+                    <div class="label">Degrees</div>
+                    <div class="value" id="stat-total-degrees">—</div>
+                    <div class="trend text-muted">Recorded qualifications</div>
                 </div>
             </div>
 
-            <!-- Charts Grid -->
+            <!-- Overview Charts: Industry Distribution + Graduation Trends -->
+            <div class="charts-grid">
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Industry Distribution</span>
+                        <span class="status-badge status-success">Live</span>
+                    </div>
+                    <canvas id="overviewIndustryChart"></canvas>
+                </div>
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Graduation Trends</span>
+                        <span class="status-badge status-success">Live</span>
+                    </div>
+                    <canvas id="graduationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics View (all detailed charts) -->
+        <div id="view-analytics" class="dashboard-view hidden">
             <div class="charts-grid">
                 <!-- Alumni by Degree -->
                 <div class="card chart-container">
-                    <div class="chart-title">
-                        <span>Degree Distribution</span>
-                    </div>
+                    <div class="chart-title"><span>Degree Distribution</span></div>
                     <canvas id="degreeChart"></canvas>
                 </div>
-
-
-
                 <!-- Geographic Distribution -->
                 <div class="card chart-container">
-                    <div class="chart-title">
-                        <span>Alumni Employment Hubs</span>
-                    </div>
+                    <div class="chart-title"><span>Alumni Employment Hubs</span></div>
                     <canvas id="geoChart"></canvas>
                 </div>
-
-                <!-- Top Bidders Performance -->
+                <!-- Top Bidders -->
                 <div class="card chart-container chart-radar">
-                    <div class="chart-title">
-                        <span>Top Sponsoring Alumni</span>
-                    </div>
+                    <div class="chart-title"><span>Top Sponsoring Alumni</span></div>
                     <canvas id="topBiddersChart"></canvas>
                 </div>
-
                 <!-- Industry Growth -->
                 <div class="card chart-container">
                     <div class="chart-title">
@@ -138,29 +148,22 @@
                     </div>
                     <canvas id="industryChart"></canvas>
                 </div>
-
-                <!-- Skills Gap Analysis -->
+                <!-- Skills Gap -->
                 <div class="card chart-container chart-radar">
                     <div class="chart-title">
-                        <span>Independent Certifications vs Curriculum</span>
+                        <span>Certifications vs Curriculum</span>
                         <span class="status-badge status-danger">Critical Gap</span>
                     </div>
                     <canvas id="skillsGapChart"></canvas>
                 </div>
-
-                <!-- Average Salary by Role -->
+                <!-- Salary -->
                 <div class="card chart-container">
-                    <div class="chart-title">
-                        <span>Average Starting Salary (GBP)</span>
-                    </div>
+                    <div class="chart-title"><span>Average Starting Salary (GBP)</span></div>
                     <canvas id="salaryChart"></canvas>
                 </div>
-
-                <!-- Engagement activity -->
+                <!-- Engagement -->
                 <div class="card chart-container">
-                    <div class="chart-title">
-                        <span>Platform Engagement Trends</span>
-                    </div>
+                    <div class="chart-title"><span>Platform Engagement Trends</span></div>
                     <canvas id="engagementChart"></canvas>
                 </div>
             </div>

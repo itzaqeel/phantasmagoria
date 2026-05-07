@@ -19,9 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Update Title
             const titleMap = {
-                'overview': 'University Intelligence Overview',
-                'alumni': 'Detailed Alumni Analysis',
-                'profile': 'My Account & Identity'
+                'overview':  'University Intelligence Overview',
+                'analytics': 'Detailed Analytics',
+                'alumni':    'Alumni',
+                'profile':   'My Account & Identity'
             };
             document.getElementById('view-title').textContent = titleMap[view] || 'Dashboard';
             
@@ -31,12 +32,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 actionsEl.style.display = (view === 'overview') ? 'flex' : 'none';
             }
 
-            if (view === 'profile') {
-                renderProfileData();
-            }
+            if (view === 'profile') { renderProfileData(); }
             if (view === 'alumni') {
                 loadFilterOptions().then(() => setupAlumniFilterHandlers());
                 loadAlumniList({});
+            }
+            if (view === 'analytics') {
+                renderAllCharts(window._lastOverviewData || getMockData());
             }
         });
     });
@@ -49,18 +51,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'auth.html';
     });
     
-    // Initial Render with Mock Data (for demo/fallback)
-    const mockData = getMockData();
-    updateStats(mockData);
-    renderAllCharts(mockData);
-    
-    // Attempt to fetch real data
+    // Fetch real data immediately
     await refreshDashboardData();
-    await renderProfileData(); // Fetch profile early
+    await renderProfileData();
 
     // Export Handlers
     setupExportHandlers();
 });
+
 
 function initChartDefaults() {
     Chart.defaults.color = '#94a3b8'; // text-secondary
@@ -87,28 +85,84 @@ async function updateAppStatus() {
 async function refreshDashboardData() {
     const statsRes = await API.get('/analytics/overview');
     if (statsRes.ok && statsRes.data) {
+        window._lastOverviewData = statsRes.data;
         updateStats(statsRes.data);
-        renderAllCharts(statsRes.data);
+        renderOverviewCharts(statsRes.data);
     }
 }
 
 function updateStats(data) {
-    document.getElementById('stat-total-alumni').textContent = data.totalAlumni || '0';
-    document.getElementById('stat-active-bids').textContent = data.activeBids || '0';
-    document.getElementById('stat-total-revenue').textContent = `£${data.totalRevenue?.toFixed(2) || '0.00'}`;
-    document.getElementById('stat-api-hits').textContent = data.apiHits || '0';
+    const s = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    s('stat-total-alumni',   data.totalAlumni   ?? '—');
+    s('stat-total-certs',    data.totalCertifications ?? '—');
+    s('stat-total-degrees',  data.totalDegrees  ?? '—');
 }
 
+// Called on load and when Analytics nav is clicked
 function renderAllCharts(data) {
     renderDegreeChart(data.degreeDist);
     renderGeoChart(data.geoDist);
     renderTopBiddersChart(data.topBidders);
-    
-    // New Mandatory Charts
     renderIndustryChart(data.industryGrowth);
     renderSkillsGapChart(data.skillsGap);
     renderSalaryChart(data.salaryBenchmarks);
     renderEngagementChart(data.engagementTrends);
+}
+
+// Two overview-specific charts: Industry Distribution + Graduation Trends
+let _overviewChartsRendered = false;
+function renderOverviewCharts(data) {
+    if (_overviewChartsRendered) return; // avoid re-rendering on each dashboard refresh
+    _overviewChartsRendered = true;
+
+    // Industry Distribution — fetch from live endpoint
+    API.get('/analytics/employment-by-industry').then(res => {
+        const rows = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        const ctx  = document.getElementById('overviewIndustryChart')?.getContext('2d');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: rows.length ? rows.map(r => r.sector) : ['No data'],
+                datasets: [{ label: 'Alumni', data: rows.length ? rows.map(r => r.count) : [0],
+                    backgroundColor: 'rgba(251,191,36,0.8)', borderRadius: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } }
+                }
+            }
+        });
+    });
+
+    // Graduation Trends — line chart from overview data
+    const grad = data.graduationTrends || { labels: [], values: [] };
+    const ctx2 = document.getElementById('graduationChart')?.getContext('2d');
+    if (ctx2) {
+        const gradient = ctx2.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(251,191,36,0.35)');
+        gradient.addColorStop(1, 'rgba(251,191,36,0)');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: grad.labels.length ? grad.labels : ['No data'],
+                datasets: [{ label: 'Graduates', data: grad.labels.length ? grad.values : [0],
+                    borderColor: '#fbbf24', backgroundColor: gradient,
+                    fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#fbbf24' }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } }
+                }
+            }
+        });
+    }
 }
 
 // --- Chart Renderers ---
