@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Alumni Influencers</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="page-loading"><div class="spinner"></div></div>
+
+  <!-- Horizontal Top Navigation -->
+  <nav class="top-nav">
+    <div class="brand">Alumni Influencers</div>
+    
+    <div class="nav-links">
+      <div class="nav-link active" data-nav="profile">
+        <span class="nav-icon">👤</span> My Influencer Profile
+      </div>
+      <div class="nav-link" data-nav="bidding">
+        <span class="nav-icon">🎯</span> Daily Bidding System
+      </div>
+      <a href="/admin.html" id="nav-dev-api" class="nav-link" style="display: none;">
+        <span class="nav-icon">⚙️</span> Developer API
+      </a>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="text-xs text-muted" id="user-email"></div>
+      <button id="logout-btn" class="btn btn-secondary btn-sm">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="layout" id="app-layout" style="opacity: 0; transition: opacity .3s;">
+    <main class="main-content">
+      
+      <!-- ======================= PROFILE PANEL ======================= -->
+      <div id="panel-profile" class="panel active">
+        <div class="page-header">
+          <div>
+            <h1>Influencer Profile</h1>
+            <div class="subtitle">Personalize your profile to attract sponsors and students</div>
+          </div>
+          <div id="profile-stage-btns">
+            <button id="btn-edit-profile" class="btn btn-primary btn-sm">✎ Edit Profile</button>
+            <button id="btn-save-profile" class="btn btn-primary btn-sm" style="display:none;">💾 Save Influencer Data</button>
+            <button id="btn-cancel-edit"  class="btn btn-secondary btn-sm" style="display:none;">✕ Cancel</button>
+          </div>
+        </div>
+
+        <!-- Completion Bar (Coursework Requirement: View Profile Completion Status) -->
+        <div class="card completion-card mb-4" id="completion-card">
+          <div class="completion-header">
+            <span>Profile Quality Index</span>
+            <span id="completion-label" class="badge badge-gold" style="font-size:.7rem;">Scanning Profile…</span>
+          </div>
+          <div class="completion-track">
+            <div id="completion-bar" class="completion-fill"></div>
+          </div>
+          <div id="completion-sections" class="completion-badges"></div>
+        </div>
+
+        <!-- ── VIEW STAGE ── -->
+        <div id="profile-view-stage">
+          <div class="profile-split-grid">
+            
+            <!-- LEFT COLUMN: Identity & Bio -->
+            <div class="profile-main-stack">
+              <div class="card">
+                <div class="profile-hero">
+                  <div style="flex-shrink:0;">
+                    <div id="view-avatar" class="avatar-placeholder" style="width:80px;height:80px;font-size:1.8rem;"></div>
+                    <img id="view-avatar-img" class="avatar hidden" style="width:80px;height:80px;" alt="Profile photo"
+                      onerror="this.classList.add('hidden'); document.getElementById('view-avatar').classList.remove('hidden')">
+                  </div>
+                  <div class="info">
+                    <h2 id="view-name">—</h2>
+                    <div id="view-linkedin" style="margin-bottom:.35rem;"></div>
+                  </div>
+                </div>
+                <div style="padding: 0 1.5rem 1.5rem;">
+                  <h4 style="margin-bottom:.5rem; color:var(--text-muted); font-size:.8rem; text-transform:uppercase;">Biography</h4>
+                  <p id="view-bio" class="bio" style="font-size:.9rem;">No professional biography added yet.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Qualifications Tabs -->
+            <div class="profile-qual-stack">
+              <div class="card">
+                <div class="tabs" id="view-tabs">
+                  <button class="tab-btn active" data-vtab="vt-degrees">Degrees</button>
+                  <button class="tab-btn" data-vtab="vt-certs">Professional Certifications</button>
+                  <button class="tab-btn" data-vtab="vt-licences">Professional Licences</button>
+                  <button class="tab-btn" data-vtab="vt-courses">Short Courses</button>
+                  <button class="tab-btn" data-vtab="vt-jobs">Employment History</button>
+                </div>
+                <!-- Independent scroll columns -->
+                <div id="vt-degrees" class="tab-content active" style="margin-top:.75rem;"><div id="view-degrees-list"></div></div>
+                <div id="vt-certs"   class="tab-content"        style="margin-top:.75rem;"><div id="view-certs-list"></div></div>
+                <div id="vt-licences" class="tab-content"       style="margin-top:.75rem;"><div id="view-licences-list"></div></div>
+                <div id="vt-courses" class="tab-content"        style="margin-top:.75rem;"><div id="view-courses-list"></div></div>
+                <div id="vt-jobs"    class="tab-content"        style="margin-top:.75rem;"><div id="view-jobs-list"></div></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── EDIT STAGE ── -->
+        <div id="profile-edit-stage" style="display:none;">
+          <div class="profile-split-grid">
+            
+            <!-- LEFT: Identity Edit -->
+            <div class="profile-main-stack">
+              <div class="card">
+                <h3 class="mb-4" style="font-size:1rem;">Influencer Identity</h3>
+                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+                    <div id="avatar-container" class="avatar-placeholder" style="width:90px; height:90px; font-size:1.8rem;"></div>
+                    <img src="" alt="Avatar" class="avatar hidden" id="profile-img-preview" style="width:90px; height:90px;"
+                      onerror="this.classList.add('hidden'); document.getElementById('avatar-container').classList.remove('hidden')">
+                    <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('image-upload').click()">Upload Profile Image</button>
+                  </div>
+                  <div class="form-group"><label class="form-label">First Name</label><input type="text" id="p-fname" class="form-input" required></div>
+                  <div class="form-group"><label class="form-label">Last Name</label><input type="text" id="p-lname" class="form-input" required></div>
+                  <div class="form-group"><label class="form-label">LinkedIn profile URL</label><input type="url" id="p-linkedin" class="form-input" placeholder="https://linkedin.com/in/..."></div>
+                  <div class="form-group"><label class="form-label">Personal Information and Biography</label><textarea id="p-bio" class="form-textarea" rows="4" placeholder="Tell students about your journey..."></textarea></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: Qualifications Edit -->
+            <div class="profile-qual-stack">
+              <div class="card">
+                <div class="tabs">
+                  <button class="tab-btn active" data-tab="degrees">Degrees</button>
+                  <button class="tab-btn" data-tab="certs">Certifications</button>
+                  <button class="tab-btn" data-tab="licences">Licences</button>
+                  <button class="tab-btn" data-tab="courses">Short Courses</button>
+                  <button class="tab-btn" data-tab="jobs">Employment</button>
+                </div>
+
+                <div id="tab-degrees" class="tab-content active">
+                  <form id="add-degree-form" class="flex flex-col gap-2 mb-4 p-3 bg-muted rounded">
+                    <div class="flex gap-2">
+                       <input type="text" id="deg-title" class="form-input" placeholder="Degree Title (required)" required>
+                       <input type="text" id="deg-inst"  class="form-input" placeholder="University Name">
+                    </div>
+                    <div class="flex gap-2">
+                       <input type="url"  id="deg-url"   class="form-input" placeholder="Official University Degree URL">
+                       <input type="date" id="deg-date"  class="form-input" title="Completion Date">
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">Add Degree Entry</button>
+                  </form>
+                  <div id="degrees-list"></div>
+                </div>
+
+                <div id="tab-certs" class="tab-content">
+                  <form id="add-cert-form" class="flex flex-col gap-2 mb-4 p-3 bg-muted rounded">
+                    <input type="text" id="cert-title" class="form-input" placeholder="Professional Certification Title" required>
+                    <div class="flex gap-2">
+                       <input type="url"  id="cert-url"   class="form-input" placeholder="Course Provider URL">
+                       <input type="date" id="cert-date"  class="form-input" title="Compliance / Completion Date">
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">Add Certification</button>
+                  </form>
+                  <div id="certs-list"></div>
+                </div>
+
+                <div id="tab-licences" class="tab-content">
+                  <form id="add-licence-form" class="flex flex-col gap-2 mb-4 p-3 bg-muted rounded">
+                    <input type="text" id="lic-title" class="form-input" placeholder="Professional Licence Title" required>
+                    <div class="flex gap-2">
+                       <input type="text" id="lic-body"  class="form-input" placeholder="Licence Awarding Body">
+                       <input type="url"  id="lic-url"   class="form-input" placeholder="Awarding Body URL">
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">Add Licence</button>
+                  </form>
+                  <div id="licences-list"></div>
+                </div>
+
+                <div id="tab-courses" class="tab-content">
+                  <form id="add-course-form" class="flex flex-col gap-2 mb-4 p-3 bg-muted rounded">
+                    <input type="text" id="crs-title" class="form-input" placeholder="Short Professional Course Title" required>
+                    <input type="url"  id="crs-url"   class="form-input" placeholder="Course Platform / Provider URL">
+                    <button type="submit" class="btn btn-secondary btn-sm">Add Short Course</button>
+                  </form>
+                  <div id="courses-list"></div>
+                </div>
+
+                <div id="tab-jobs" class="tab-content">
+                  <form id="add-job-form" class="flex flex-col gap-2 mb-4 p-3 bg-muted rounded">
+                    <div class="flex gap-2">
+                       <input type="text" id="job-company" class="form-input" placeholder="Employer / Company Name" required>
+                       <input type="text" id="job-role"    class="form-input" placeholder="Professional Role" required>
+                    </div>
+                    <div class="flex gap-2">
+                       <div class="flex-1">
+                          <label class="text-xs text-muted">Start Date</label>
+                          <input type="date" id="job-start" class="form-input" required>
+                       </div>
+                       <div class="flex-1">
+                          <label class="text-xs text-muted">End Date (Blank if Current)</label>
+                          <input type="date" id="job-end" class="form-input">
+                       </div>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">Add Employment History Entry</button>
+                  </form>
+                  <div id="jobs-list"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= BIDDING PANEL ======================= -->
+      <div id="panel-bidding" class="panel">
+        <div class="page-header">
+          <div>
+            <h1>Daily Bidding System</h1>
+            <div class="subtitle">Bid for the exclusive Alumni of the Day spot for tomorrow's AR highlight</div>
+          </div>
+        </div>
+
+        <div class="bidding-grid">
+          
+          <div class="bid-stat">
+            <div class="val" id="wins-month">0</div>
+            <div class="lbl">Featured Slots Won (Month)</div>
+          </div>
+
+          <div id="bid-status-card" class="card">
+            <div class="status-icon" id="bid-status-icon">⏳</div>
+            <div class="status-body">
+              <h2 id="bid-headline">Analyzing Bidding Tiers...</h2>
+              <p id="bid-feedback" class="text-secondary"></p>
+            </div>
+            <div class="status-actions">
+              <div id="my-bid-amount" class="text-accent fw-600 hidden" style="font-size:.95rem; white-space:nowrap;">
+                <span>Bid: £<span id="my-bid-val"></span></span>
+              </div>
+              <button id="cancel-bid-btn" class="btn btn-sm btn-danger" style="display:none;">Retract Bid</button>
+            </div>
+          </div>
+
+          <div class="bid-stat">
+            <div class="val" id="wins-left">3</div>
+            <div class="lbl">Featured Spots Remaining</div>
+          </div>
+
+          <div class="card" id="bid-action-card" style="padding:1.15rem 1.35rem; display:flex; flex-direction:column; justify-content:center;">
+            <h3 class="mb-3" id="bid-form-title" style="font-size:.95rem;">Fund Your Featured Slot</h3>
+            <form id="bid-form" class="bid-form-row">
+              <div class="form-group" style="flex:1;">
+                <input type="number" step="0.01" min="0.01" id="bid-amount" class="form-input" placeholder="Sponsorship Amount in £" required>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm" id="bid-submit-btn">Commit Bid</button>
+            </form>
+            <p class="text-xs text-muted mt-2" style="margin-bottom:0;">Automated midnight winner selection ensures fair competition.</p>
+          </div>
+
+        </div>
+
+        <div class="card mb-4" id="tomorrow-slot-card" style="padding:1.15rem 1.35rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.65rem;">
+            <h3 style="margin:0; font-size:1rem;">📅 Exclusive 24-Hour Featured Slot</h3>
+            <span id="tmr-eligibility-badge" class="badge badge-gold" style="font-size:.7rem;">Scanning Eligibility…</span>
+          </div>
+          <div class="slot-grid">
+            <div class="slot-item">
+              <div class="lbl">Spot Date</div>
+              <div class="val" id="tmr-date">—</div>
+            </div>
+            <div class="slot-item">
+              <div class="lbl">Bidding Region</div>
+              <div class="val">Asia/Colombo (UTC+5:30)</div>
+            </div>
+            <div class="slot-item">
+              <div class="lbl">Window Opens</div>
+              <div class="val" id="tmr-opens">12:00 AM (Midnight)</div>
+            </div>
+            <div class="slot-item">
+              <div class="lbl">Winner Announced / Cutoff</div>
+              <div class="val" id="tmr-closes">11:59 PM (Midnight Cutoff)</div>
+            </div>
+          </div>
+          <p id="tmr-reason" class="text-xs text-muted mt-3" style="border-top:1px solid var(--border); padding-top:.5rem; margin-bottom:0;"></p>
+        </div>
+
+        <h3 style="font-size:1rem; margin-bottom:.75rem;">Influencer Bidding History</h3>
+        <div class="table-wrap card table-scroll" style="padding:.75rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Target Date</th>
+                <th>Sponsorship Amount</th>
+                <th>Outcome Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="bid-history"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

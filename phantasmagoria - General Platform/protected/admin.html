@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer API | Phantasmagoria Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="page-loading"><div class="spinner"></div></div>
+
+  <!-- Horizontal Top Navigation (Modernized) -->
+  <nav class="top-nav">
+    <div class="brand">Phantasmagoria Admin</div>
+    
+    <div class="nav-links">
+      <div class="nav-link active" data-nav="api">
+        <span class="nav-icon">⚙️</span> API Management
+      </div>
+      <div class="nav-link" data-nav="alumni">
+        <span class="nav-icon">🎓</span> Alumni Management
+      </div>
+      <a href="/api-docs" target="_blank" class="nav-link">
+        <span class="nav-icon">📖</span> Swagger Docs
+      </a>
+    </div>
+
+    <div>
+      <button id="logout-btn" class="btn btn-secondary btn-sm">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="layout" id="app-layout" style="opacity: 0; transition: opacity .3s;">
+    <main class="main-content">
+
+      <!-- ======================= API MANAGEMENT PANEL ======================= -->
+      <div id="panel-api" class="panel active">
+        <div class="page-header">
+          <div>
+            <h1>API Control Center</h1>
+            <p class="text-muted mt-1">Manage bearer tokens for 3rd party platform access.</p>
+          </div>
+        </div>
+
+        <div class="admin-split-grid">
+          
+          <!-- LEFT: GENERATE TOKEN -->
+          <div class="admin-left-stack">
+            <div class="card">
+              <h3 class="mb-4">Generate New API Key</h3>
+              <form id="generate-token-form">
+                <div class="flex gap-4 items-center mb-4">
+                  <div class="form-group flex-1" style="margin:0;">
+                    <input type="text" id="token-name" class="form-input" placeholder="e.g. AR App" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary" id="generate-btn">Generate</button>
+                </div>
+                <div class="flex gap-4">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.875rem;">
+                    <input type="checkbox" id="perm-alumni" value="read:alumni" checked> read:alumni
+                  </label>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.875rem;">
+                    <input type="checkbox" id="perm-analytics" value="read:analytics"> read:analytics
+                  </label>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.875rem;">
+                    <input type="checkbox" id="perm-ar" value="read:alumni_of_day"> read:alumni_of_day
+                  </label>
+                </div>
+              </form>
+
+              <!-- Result Container (Modernized for better readability) -->
+              <div id="new-token-container" class="hidden mt-12 p-8 bg-accent-glow" style="border: 2px solid var(--accent); border-radius: var(--radius-lg); background: rgba(251, 191, 36, 0.05);">
+                <div class="text-xs text-accent-light fw-700 mb-4 flex items-center gap-2">
+                  <span>⚠️</span> WARNING: COPY YOUR KEY NOW. IT WILL NOT BE REVEALED AGAIN!
+                </div>
+                <div class="flex gap-3 items-center">
+                  <input type="text" id="raw-token-input" readonly class="form-input flex-1 font-mono text-sm" style="background: rgba(0,0,0,0.5); border-color: rgba(251, 191, 36, 0.2); color: var(--accent-light);" />
+                  <button class="btn btn-primary btn-sm" id="copy-key-btn" style="padding: 0.75rem 1.25rem;">Copy Key</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: ACTIVE KEYS -->
+          <div class="admin-right-stack">
+            <div class="card">
+              <h3 class="mb-4">Active API Keys</h3>
+              <div id="tokens-list">
+                <div class="spinner"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ======================= ALUMNI MANAGEMENT PANEL ======================= -->
+      <div id="panel-alumni" class="panel">
+        <div class="page-header">
+          <div>
+            <h1>Alumni Performance</h1>
+            <p class="text-muted mt-1">Monitor win counts and manage event eligibility bonuses.</p>
+          </div>
+          <div style="width: 320px;">
+            <input type="text" id="alumni-search" class="form-input" placeholder="Search by name or email...">
+          </div>
+        </div>
+
+        <div class="card p-0 overflow-hidden">
+          <div id="alumni-win-list" class="alumni-scroll">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
