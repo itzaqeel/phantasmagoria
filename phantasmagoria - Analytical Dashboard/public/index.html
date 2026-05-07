@@ -339,7 +339,9 @@
                 </div>
             </div>
 
-            <div class="profile-details-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+            <div class="profile-details-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem;">
+
+                <!-- Account Information -->
                 <div class="card">
                     <div class="chart-title"><span>Account Information</span></div>
                     <div class="profile-info-list">
@@ -351,35 +353,63 @@
                             <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Role / Access Level</label>
                             <div id="info-role" style="font-weight: 500; text-transform: capitalize;">—</div>
                         </div>
-                        <div class="info-item" style="margin-bottom: 1.25rem;">
+                        <div class="info-item" style="margin-bottom: 0;">
                             <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Member Since</label>
                             <div id="info-joined" style="font-weight: 500;">—</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Reset Password -->
                 <div class="card">
-                    <div class="chart-title"><span>Security Status</span></div>
-                    <div class="profile-info-list">
-                        <div class="info-item" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Two-Factor Auth</label>
-                                <div style="font-weight: 500;">Disabled</div>
-                            </div>
-                            <button class="btn btn-sm btn-secondary">Enable</button>
-                        </div>
-                        <div class="info-item" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Password</label>
-                                <div style="font-weight: 500;">Last changed 30 days ago</div>
-                            </div>
-                            <button class="btn btn-sm btn-secondary">Update</button>
-                        </div>
-                    </div>
+                    <div class="chart-title"><span>🔑 Reset Password</span></div>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6;">
+                        We'll send a secure password reset link to your registered email address. The link expires after 15 minutes.
+                    </p>
+                    <button id="btn-reset-password" class="btn btn-primary btn-sm" style="width:100%;" onclick="handleResetPassword()">
+                        Send Reset Link
+                    </button>
+                    <div id="reset-feedback" style="margin-top:0.75rem;font-size:0.82rem;display:none;"></div>
                 </div>
+
+                <!-- Email Verification -->
+                <div class="card">
+                    <div class="chart-title"><span>✉️ Email Verification</span></div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Verification Status</label>
+                            <div id="verify-status-text" style="font-weight:500; color: var(--success);">✓ Verified</div>
+                        </div>
+                        <span id="verify-badge" class="status-badge" style="background:rgba(16,185,129,0.12);color:var(--success);">Active</span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.5;">
+                        If your email is not verified, you won't be able to access your account after logging out.
+                    </p>
+                    <button id="btn-resend-verify" class="btn btn-secondary btn-sm" style="width:100%;" onclick="handleResendVerification()">
+                        Resend Verification Email
+                    </button>
+                    <div id="verify-feedback" style="margin-top:0.75rem;font-size:0.82rem;display:none;"></div>
+                </div>
+
+                <!-- Session & Logout -->
+                <div class="card">
+                    <div class="chart-title"><span>🚪 Session</span></div>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6;">
+                        You are currently signed in. Logging out will clear your session and return you to the login page.
+                    </p>
+                    <button class="btn btn-sm" style="width:100%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;" onclick="handleProfileLogout()">
+                        Logout
+                    </button>
+                </div>
+
             </div>
         </div>
+
+        <!-- Toast notification -->
+        <div id="profile-toast" style="position:fixed;bottom:2rem;right:2rem;z-index:99999;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1.25rem;font-size:0.88rem;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.4);max-width:320px;"></div>
+
     </main>
+
 
     <script src="js/api.js"></script>
     <script src="js/dashboard.js"></script>

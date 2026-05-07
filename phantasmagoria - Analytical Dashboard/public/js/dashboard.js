@@ -59,6 +59,96 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupExportHandlers();
 });
 
+// ── Profile Action Handlers ──────────────────────────────────────────────────
+
+async function handleResetPassword() {
+    const user  = JSON.parse(localStorage.getItem('user') || '{}');
+    const email = user.email;
+    const btn   = document.getElementById('btn-reset-password');
+    const fb    = document.getElementById('reset-feedback');
+    if (!email) return;
+
+    btn.disabled    = true;
+    btn.textContent = 'Sending…';
+
+    const BASE = window.API_BASE || (window.API && window.API._base) || '';
+    try {
+        const res = await fetch(`${BASE}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        fb.style.display = 'block';
+        if (res.ok) {
+            fb.style.color   = 'var(--success)';
+            fb.textContent   = '✓ Reset link sent — check your email inbox.';
+            showProfileToast('✓ Password reset email sent!', 'success');
+        } else {
+            fb.style.color   = '#f87171';
+            fb.textContent   = data.message || 'Could not send reset email.';
+        }
+    } catch {
+        fb.style.display = 'block';
+        fb.style.color   = '#f87171';
+        fb.textContent   = 'Network error. Please try again.';
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Send Reset Link';
+    }
+}
+
+async function handleResendVerification() {
+    const user  = JSON.parse(localStorage.getItem('user') || '{}');
+    const email = user.email;
+    const btn   = document.getElementById('btn-resend-verify');
+    const fb    = document.getElementById('verify-feedback');
+    if (!email) return;
+
+    btn.disabled    = true;
+    btn.textContent = 'Sending…';
+
+    const BASE = window.API_BASE || (window.API && window.API._base) || '';
+    try {
+        const res  = await fetch(`${BASE}/api/auth/resend-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        fb.style.display = 'block';
+        if (res.ok) {
+            fb.style.color = 'var(--success)';
+            fb.textContent = '✓ Verification email resent — check your inbox.';
+            showProfileToast('✓ Verification email sent!', 'success');
+        } else {
+            fb.style.color = '#f87171';
+            fb.textContent = data.message || 'Could not resend verification email.';
+        }
+    } catch {
+        fb.style.display = 'block';
+        fb.style.color   = '#f87171';
+        fb.textContent   = 'Network error. Please try again.';
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Resend Verification Email';
+    }
+}
+
+function handleProfileLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'auth.html';
+}
+
+function showProfileToast(message, type = 'success') {
+    const toast = document.getElementById('profile-toast');
+    if (!toast) return;
+    toast.textContent   = message;
+    toast.style.color   = type === 'success' ? 'var(--success)' : '#f87171';
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+}
 
 function initChartDefaults() {
     Chart.defaults.color = '#94a3b8'; // text-secondary
