@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderProfileData();
             }
             if (view === 'alumni') {
-                loadAlumniData();
+                loadAlumniList();
             }
         });
     });
@@ -318,125 +318,189 @@ function exportToPDF() {
     doc.save("Phantasmagoria_Report.pdf");
 }
 
-// --- Alumni Analytics ---
+// --- Alumni Directory ---
 
-// Track chart instances so we can destroy and re-render on filter change
-const alumniCharts = {};
+async function loadAlumniList() {
+    const tbody = document.getElementById('alumni-list-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">⏳ Loading alumni directory...</td></tr>';
 
-async function loadAlumniData() {
-    const programme = document.getElementById('filter-programme')?.value.trim() || '';
-    const year = document.getElementById('filter-year')?.value.trim() || '';
-    const loadingEl = document.getElementById('alumni-loading');
-    if (loadingEl) loadingEl.style.display = 'inline';
+    const res = await API.get('/analytics/alumni');
 
-    const params = new URLSearchParams();
-    if (programme) params.set('programme', programme);
-    if (year) params.set('gradYear', year);
-    const qs = params.toString() ? `?${params.toString()}` : '';
+    // Proxy unwraps {success, data} → raw array
+    const alumni = Array.isArray(res.data) ? res.data : (res.data?.data || []);
 
-    // Fetch all alumni endpoints in parallel
-    const [employmentRes, jobTitlesRes, employersRes, geoRes, skillsRes] = await Promise.all([
-        API.get(`/analytics/employment-by-industry${qs}`),
-        API.get(`/analytics/top-job-titles${qs}`),
-        API.get(`/analytics/top-employers${qs}`),
-        API.get('/analytics/geographic'),
-        API.get('/analytics/skills-gap')
-    ]);
-
-    if (loadingEl) loadingEl.style.display = 'none';
-
-    // The analytics proxy unwraps response.data.data, so these endpoints return arrays directly
-    const empData = Array.isArray(employmentRes.data) ? employmentRes.data : (employmentRes.data?.data || []);
-    if (employmentRes.ok && empData.length >= 0) {
-        renderAlumniBarChart('employmentChart', alumniCharts,
-            empData.map(r => r.sector || r.role || 'Unknown'),
-            empData.map(r => r.count),
-            'Alumni Count', true);
+    if (!res.ok) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--danger);">Failed to load alumni. Check API connection.</td></tr>';
+        return;
     }
 
-    const jobData = Array.isArray(jobTitlesRes.data) ? jobTitlesRes.data : (jobTitlesRes.data?.data || []);
-    if (jobTitlesRes.ok && jobData.length >= 0) {
-        renderAlumniBarChart('jobTitlesChart', alumniCharts,
-            jobData.map(r => r.title || r.role || 'Unknown'),
-            jobData.map(r => r.count),
-            'Alumni Count', true);
+    // Update stat cards
+    const totalEl = document.getElementById('alumni-total-count');
+    const verifiedEl = document.getElementById('alumni-verified-count');
+    const profileEl = document.getElementById('alumni-profile-count');
+    if (totalEl) totalEl.textContent = alumni.length;
+    if (verifiedEl) verifiedEl.textContent = alumni.filter(a => a.is_verified).length;
+    if (profileEl) profileEl.textContent = alumni.filter(a => a.biography).length;
+
+    if (alumni.length === 0) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">No alumni registered yet.</td></tr>';
+        return;
     }
 
-    const emprsData = Array.isArray(employersRes.data) ? employersRes.data : (employersRes.data?.data || []);
-    if (employersRes.ok && emprsData.length >= 0) {
-        renderAlumniBarChart('employersChart', alumniCharts,
-            emprsData.map(r => r.company || 'Unknown'),
-            emprsData.map(r => r.count),
-            'Alumni Count', false);
-    }
+    window._alumniData = alumni;
+    renderAlumniTable(alumni);
 
-    const geoData = Array.isArray(geoRes.data) ? geoRes.data : (geoRes.data?.data || []);
-    if (geoRes.ok && geoData.length >= 0) {
-        renderAlumniBarChart('geoAlumniChart', alumniCharts,
-            geoData.map(r => r.location || r.company || 'Unknown'),
-            geoData.map(r => r.count),
-            'Alumni Count', false);
-    }
-
-    // Render skills table (skills-gap is NOT unwrapped — returns {success, certifications, courses} directly)
-    const skillsData = skillsRes.data?.certifications ? skillsRes.data : (skillsRes.data?.data || skillsRes.data || {});
-    if (skillsRes.ok && skillsData) {
-        const tbody = document.getElementById('skills-table-body');
-        const combined = [
-            ...(skillsData.certifications || []),
-            ...(skillsData.courses || [])
-        ].sort((a, b) => b.count - a.count);
-
-        if (tbody) {
-            if (combined.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="2" style="padding: 2rem; text-align: center; color: var(--text-muted);">No certification or course data available yet.</td></tr>`;
-            } else {
-                tbody.innerHTML = combined.map((item, i) => `
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 0.75rem 1rem;">
-                            <span style="display:inline-block; width:24px; height:24px; border-radius:50%; background:rgba(251,191,36,0.15); color:var(--accent); font-size:0.75rem; font-weight:700; text-align:center; line-height:24px; margin-right:0.75rem;">${i + 1}</span>
-                            ${item.title}
-                        </td>
-                        <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 600; color: var(--accent);">${item.count}</td>
-                    </tr>
-                `).join('');
-            }
-        }
+    // Live search
+    const searchEl = document.getElementById('alumni-search');
+    if (searchEl) {
+        searchEl.oninput = (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = window._alumniData.filter(a => {
+                const name = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+                return name.includes(q) || a.email.toLowerCase().includes(q);
+            });
+            renderAlumniTable(filtered);
+        };
     }
 }
 
-function renderAlumniBarChart(canvasId, chartStore, labels, values, dataLabel, horizontal) {
-    // Destroy previous instance to avoid duplication
-    if (chartStore[canvasId]) {
-        chartStore[canvasId].destroy();
-    }
-    const ctx = document.getElementById(canvasId)?.getContext('2d');
-    if (!ctx) return;
+function renderAlumniTable(alumni) {
+    const tbody = document.getElementById('alumni-list-body');
+    if (!tbody) return;
 
-    const hasData = values.length > 0;
-    chartStore[canvasId] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: hasData ? labels : ['No data yet'],
-            datasets: [{
-                label: dataLabel,
-                data: hasData ? values : [0],
-                backgroundColor: '#fbbf24',
-                borderRadius: 6
-            }]
-        },
-        options: {
-            indexAxis: horizontal ? 'y' : 'x',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
-                y: { grid: { display: false } }
-            }
-        }
-    });
+    if (alumni.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--text-muted);">No matching alumni found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = alumni.map(a => {
+        const firstName = a.first_name || '';
+        const lastName  = a.last_name  || '';
+        const name      = (firstName + ' ' + lastName).trim() || '—';
+        const initial   = (firstName || a.email)[0].toUpperCase();
+        const joined    = new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const verified  = a.is_verified
+            ? '<span class="status-badge status-success">✓ Verified</span>'
+            : '<span class="status-badge status-warning">⚠ Unverified</span>';
+
+        return `
+            <tr style="border-bottom:1px solid var(--border); transition:background 0.15s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.025)'"
+                onmouseout="this.style.background='transparent'">
+                <td style="padding:0.9rem 1rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <div style="width:38px;height:38px;border-radius:50%;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--accent);flex-shrink:0;">${initial}</div>
+                        <div style="font-weight:600;">${name}</div>
+                    </div>
+                </td>
+                <td style="padding:0.9rem 1rem;color:var(--text-secondary);font-size:0.88rem;">${a.email}</td>
+                <td style="padding:0.9rem 1rem;text-align:center;">
+                    <span class="status-badge" style="background:rgba(99,102,241,0.12);color:#a5b4fc;text-transform:capitalize;">${a.role}</span>
+                </td>
+                <td style="padding:0.9rem 1rem;text-align:center;">${verified}</td>
+                <td style="padding:0.9rem 1rem;text-align:center;color:var(--text-secondary);font-size:0.85rem;">${joined}</td>
+                <td style="padding:0.9rem 1rem;text-align:center;">
+                    <button onclick="viewAlumniProfile(${a.id})"
+                        class="btn btn-secondary btn-sm"
+                        style="font-size:0.78rem;padding:0.3rem 0.8rem;">
+                        View Profile
+                    </button>
+                </td>
+            </tr>`;
+    }).join('');
 }
+
+async function viewAlumniProfile(id) {
+    const modal   = document.getElementById('alumni-modal');
+    const content = document.getElementById('modal-content');
+    modal.style.display = 'flex';
+    content.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted);">⏳ Loading profile...</div>';
+
+    const res    = await API.get(`/analytics/alumni/${id}`);
+    const alumni = res.data?.data || res.data;
+
+    if (!res.ok || !alumni) {
+        content.innerHTML = '<p style="color:var(--danger);padding:1rem;">Failed to load profile.</p>';
+        return;
+    }
+
+    const firstName = alumni.first_name || '';
+    const lastName  = alumni.last_name  || '';
+    const name      = (firstName + ' ' + lastName).trim() || alumni.email;
+    const initial   = (firstName || alumni.email)[0].toUpperCase();
+    const joined    = new Date(alumni.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const row = (label, value) => value ? `
+        <div style="padding:0.65rem 0.85rem;background:rgba(255,255,255,0.04);border-radius:8px;">
+            <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.2rem;">${label}</div>
+            <div style="font-weight:500;font-size:0.9rem;">${value}</div>
+        </div>` : '';
+
+    const section = (title, items, emptyMsg) => `
+        <div style="margin-bottom:1.25rem;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.6rem;">${title}</div>
+            ${items.length === 0
+                ? `<p style="color:var(--text-muted);font-size:0.85rem;">${emptyMsg}</p>`
+                : items.map(item => `<div style="padding:0.7rem 0.9rem;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:0.4rem;">${item}</div>`).join('')
+            }
+        </div>`;
+
+    const degreeItems = (alumni.degrees || []).map(d =>
+        `<div style="font-weight:600;font-size:0.88rem;">${d.title}</div>
+         <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${[d.institution, d.completion_date ? new Date(d.completion_date).getFullYear() : null].filter(Boolean).join(' · ')}</div>`
+    );
+
+    const empItems = (alumni.employment || []).map(e =>
+        `<div style="font-weight:600;font-size:0.88rem;">${e.role}</div>
+         <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${[e.company, e.start_date ? new Date(e.start_date).getFullYear() + (e.end_date ? '–' + new Date(e.end_date).getFullYear() : '–Present') : null].filter(Boolean).join(' · ')}</div>`
+    );
+
+    const certItems = (alumni.certifications || []).map(c =>
+        `<div style="font-weight:600;font-size:0.88rem;">${c.title}</div>
+         <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${c.completion_date ? new Date(c.completion_date).toLocaleDateString('en-GB', {month:'short',year:'numeric'}) : ''}</div>`
+    );
+
+    content.innerHTML = `
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+            <div style="width:60px;height:60px;border-radius:50%;background:rgba(251,191,36,0.12);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:var(--accent);flex-shrink:0;">${initial}</div>
+            <div>
+                <h3 style="margin:0;font-size:1.2rem;">${name}</h3>
+                <p style="margin:0.2rem 0 0;color:var(--text-secondary);font-size:0.88rem;">${alumni.email}</p>
+            </div>
+        </div>
+
+        <!-- Key Info Grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1.5rem;">
+            ${row('User Type', `<span style="text-transform:capitalize;color:var(--accent);">${alumni.role}</span>`)}
+            ${row('Status', alumni.is_verified ? '✓ Verified' : '⚠ Unverified')}
+            ${row('Member Since', joined)}
+            ${alumni.linkedin_url ? row('LinkedIn', `<a href="${alumni.linkedin_url}" target="_blank" style="color:var(--accent);">View Profile ↗</a>`) : ''}
+        </div>
+
+        ${alumni.biography ? `
+        <div style="margin-bottom:1.25rem;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">About</div>
+            <p style="color:var(--text-secondary);font-size:0.88rem;line-height:1.65;margin:0;">${alumni.biography}</p>
+        </div>` : ''}
+
+        ${section('Education', degreeItems, 'No degrees recorded.')}
+        ${section('Employment History', empItems, 'No employment recorded.')}
+        ${section('Certifications', certItems, 'No certifications recorded.')}
+    `;
+}
+
+function closeAlumniModal() {
+    const modal = document.getElementById('alumni-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Close modal when clicking the backdrop
+document.getElementById('alumni-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeAlumniModal();
+});
+
+
 
 // --- Profile Logic ---
 

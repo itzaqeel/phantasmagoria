@@ -198,4 +198,61 @@ async function overview(req, res) {
   }
 }
 
-module.exports = { overview, skillsGap, employmentByIndustry, topJobTitles, topEmployers, geographic };
+async function alumniList(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        u.id, u.email, u.role, u.is_verified, u.created_at,
+        p.first_name, p.last_name, p.biography, p.linkedin_url,
+        p.profile_image, p.is_featured_today
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      WHERE u.role = 'alumni'
+      ORDER BY u.created_at DESC
+    `);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('alumniList error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+}
+
+async function alumniProfile(req, res) {
+  try {
+    const { id } = req.params;
+    const [users] = await pool.query(`
+      SELECT u.id, u.email, u.role, u.is_verified, u.created_at,
+             p.first_name, p.last_name, p.biography, p.linkedin_url, p.profile_image
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      WHERE u.id = ? AND u.role = 'alumni'
+    `, [id]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'Alumni not found.' });
+    }
+
+    const alumni = users[0];
+    const profileId = alumni.id; // will use user id to sub-query
+
+    const [degrees] = await pool.query(
+      `SELECT d.* FROM degrees d JOIN profiles p ON d.profile_id = p.id WHERE p.user_id = ?`,
+      [id]
+    );
+    const [employment] = await pool.query(
+      `SELECT e.* FROM employment e JOIN profiles p ON e.profile_id = p.id WHERE p.user_id = ?`,
+      [id]
+    );
+    const [certifications] = await pool.query(
+      `SELECT c.* FROM certifications c JOIN profiles p ON c.profile_id = p.id WHERE p.user_id = ?`,
+      [id]
+    );
+
+    res.json({ success: true, data: { ...alumni, degrees, employment, certifications } });
+  } catch (err) {
+    console.error('alumniProfile error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+}
+
+module.exports = { overview, skillsGap, employmentByIndustry, topJobTitles, topEmployers, geographic, alumniList, alumniProfile };
