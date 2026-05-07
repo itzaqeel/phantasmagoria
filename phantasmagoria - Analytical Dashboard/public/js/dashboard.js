@@ -228,38 +228,70 @@ async function loadAnalyticsCharts(filters = {}) {
 
     const rows = r => Array.isArray(r.data) ? r.data : (r.data?.data || []);
 
-    renderADoughnut('aIndustryChart', rows(indRes),  r => r.sector,          r => r.count);
-    renderAHBar('aJobTitlesChart',    rows(jobRes),  r => r.title || r.role, r => r.count,  true);
-    renderAHBar('aEmployersChart',    rows(empRes),  r => r.company,         r => r.count,  true);
-    renderASkillsGap('aSkillsGapChart', skillsRes.data || {});
-    renderACertTypes('aCertTypesChart', skillsRes.data || {});
-    renderAEmpStatus('aEmpStatusChart', statusRes.data || {});
+    renderAIndustry('aIndustryChart',   rows(indRes));
+    renderAJobTitles('aJobTitlesChart',  rows(jobRes));
+    renderAHBar('aEmployersChart',       rows(empRes),  r => r.company, r => r.count);
+    renderASkillsGap('aSkillsGapChart',  skillsRes.data || {});
+    renderACertTypes('aCertTypesChart',  skillsRes.data || {});
+    renderAEmpStatus('aEmpStatusChart',  statusRes.data || {});
 }
 
-// Doughnut chart (industry distribution, cert types, etc.)
-function renderADoughnut(canvasId, rows, labelFn, valueFn) {
+// 1. Polar Area — Employment by Industry Sector
+function renderAIndustry(canvasId, rows) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
     const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#92400e','#fcd34d','#fde68a','#78350f','#fed7aa','#fdba74'];
     const hasData = rows.length > 0;
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'polarArea',
         data: {
-            labels: hasData ? rows.map(labelFn) : ['No data'],
-            datasets: [{ data: hasData ? rows.map(valueFn) : [1],
-                backgroundColor: palette, borderWidth: 0, hoverOffset: 10 }]
+            labels: hasData ? rows.map(r => r.sector) : ['No data'],
+            datasets: [{ data: hasData ? rows.map(r => r.count) : [1],
+                backgroundColor: palette.map(c => c + 'bb'),
+                borderColor: palette, borderWidth: 1 }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 } } },
-            cutout: '68%'
+            layout: { padding: 20 },
+            scales: { r: {
+                grid: { color: 'rgba(255,255,255,0.06)' },
+                ticks: { display: false, beginAtZero: true }
+            }},
+            plugins: { legend: { position: 'bottom',
+                labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 } } }
         }
     });
 }
 
-// Horizontal bar chart (job titles, employers)
-function renderAHBar(canvasId, rows, labelFn, valueFn, horizontal) {
+// 2. Vertical bar — Most Common Job Titles (each bar a different colour)
+function renderAJobTitles(canvasId, rows) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#fcd34d','#fde68a','#92400e','#78350f','#fed7aa','#fdba74'];
+    const hasData = rows.length > 0;
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: hasData ? rows.map(r => r.title || r.role) : ['No data'],
+            datasets: [{ label: 'Count', data: hasData ? rows.map(r => r.count) : [0],
+                backgroundColor: palette, borderRadius: 10, borderSkipped: false }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: 20 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', maxRotation: 30 } },
+                y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+}
+
+// 3. Horizontal bar — Top Employers
+function renderAHBar(canvasId, rows, labelFn, valueFn) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
@@ -272,18 +304,19 @@ function renderAHBar(canvasId, rows, labelFn, valueFn, horizontal) {
                 backgroundColor: 'rgba(251,191,36,0.8)', borderRadius: 6 }]
         },
         options: {
-            indexAxis: horizontal ? 'y' : 'x',
+            indexAxis: 'y',
             responsive: true, maintainAspectRatio: false,
+            layout: { padding: 20 },
             plugins: { legend: { display: false } },
             scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
-                y: { grid: { display: !horizontal } }
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, ticks: { color: '#94a3b8' } },
+                y: { grid: { display: false }, ticks: { color: '#94a3b8' } }
             }
         }
     });
 }
 
-// Skills Gap — radar chart using top certifications as axes
+// 4. Radar — Curriculum Skills Gap
 function renderASkillsGap(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
@@ -295,30 +328,27 @@ function renderASkillsGap(canvasId, data) {
         data: {
             labels: hasData ? certs.map(c => c.title) : ['No data'],
             datasets: [{
-                label: 'Alumni with Certification',
+                label: 'Alumni Certified',
                 data: hasData ? certs.map(c => c.count) : [0],
-                borderColor: '#fbbf24',
-                backgroundColor: 'rgba(251,191,36,0.18)',
-                pointBackgroundColor: '#fbbf24',
-                borderWidth: 2
+                borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.15)',
+                pointBackgroundColor: '#fbbf24', borderWidth: 2
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            scales: {
-                r: {
-                    angleLines: { color: 'rgba(255,255,255,0.06)' },
-                    grid:       { color: 'rgba(255,255,255,0.06)' },
-                    pointLabels:{ color: '#94a3b8', font: { size: 11 } },
-                    ticks:      { display: false, beginAtZero: true }
-                }
-            },
+            layout: { padding: 20 },
+            scales: { r: {
+                angleLines: { color: 'rgba(255,255,255,0.06)' },
+                grid:       { color: 'rgba(255,255,255,0.06)' },
+                pointLabels:{ color: '#94a3b8', font: { size: 10 } },
+                ticks:      { display: false, beginAtZero: true }
+            }},
             plugins: { legend: { display: false } }
         }
     });
 }
 
-// Certificate Types — doughnut of top certs
+// 5. Pie — Certificate Types
 function renderACertTypes(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
@@ -326,21 +356,23 @@ function renderACertTypes(canvasId, data) {
     const certs = (data.certifications || []).slice(0, 8);
     const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#92400e','#fcd34d','#fde68a','#78350f'];
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: certs.length ? certs.map(c => c.title) : ['No data'],
             datasets: [{ data: certs.length ? certs.map(c => c.count) : [1],
-                backgroundColor: palette, borderWidth: 0, hoverOffset: 8 }]
+                backgroundColor: palette, borderWidth: 2,
+                borderColor: '#18181b', hoverOffset: 10 }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#94a3b8', boxWidth: 12 } } },
-            cutout: '65%'
+            layout: { padding: 20 },
+            plugins: { legend: { position: 'bottom',
+                labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 } } }
         }
     });
 }
 
-// Employment Status — doughnut (Employed vs Unemployed)
+// 6. Doughnut — Employment Status
 function renderAEmpStatus(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
@@ -353,11 +385,13 @@ function renderAEmpStatus(canvasId, data) {
             labels: ['Currently Employed', 'Not Employed'],
             datasets: [{ data: [employed, unemployed],
                 backgroundColor: ['rgba(16,185,129,0.85)', 'rgba(239,68,68,0.75)'],
-                borderWidth: 0, hoverOffset: 8 }]
+                borderWidth: 2, borderColor: '#18181b', hoverOffset: 10 }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14 } } },
+            layout: { padding: 20 },
+            plugins: { legend: { position: 'bottom',
+                labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 10 } } },
             cutout: '65%'
         }
     });
