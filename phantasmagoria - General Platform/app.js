@@ -1,4 +1,5 @@
 // app.js
+console.log('>>> APP.JS IS STARTING NOW <<<');
 // Main Express application entry point
 // Production-grade Alumni Platform
 // Phantasmagoria API Server
@@ -12,8 +13,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const express = require('express');
-const helmet = require('helmet');
 const cors = require('cors');
+const helmet = require('helmet');
+const analyticsRoutes = require('./src/routes/analytics');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
@@ -25,7 +27,7 @@ const profileRoutes = require('./src/routes/profile');
 const bidRoutes = require('./src/routes/bids');
 const adminRoutes = require('./src/routes/admin');
 const publicRoutes = require('./src/routes/public');
-const analyticsRoutes = require('./src/routes/analytics');
+console.log('[DEBUG] Requiring analytics routes...');
 const { startScheduler } = require('./src/services/bidScheduler');
 const { verifyToken, verifyDeveloper } = require('./src/security/auth');
 
@@ -43,11 +45,13 @@ const isAdminSession = (req, res, next) => {
 
 const { setupCsrf, csrfProtection } = require('./src/security/csrf');
 
-const app = express();
+const platformApp = express();
+
+// Analytics are mounted after all middleware (see line ~145)
 const PORT = process.env.PORT || 3000;
 
 // Trust Proxy for production Load Balancers (so rate limit tracks actual IPs)
-app.set('trust proxy', 1);
+platformApp.set('trust proxy', 1);
 
 // ─────────────────────────────────────────────
 // 1. SECURITY LAYERS (Helmet.js, CORS, CSRF)
@@ -55,7 +59,7 @@ app.set('trust proxy', 1);
 
 // Helmet: Sets 14 security-related HTTP headers automatically
 // Allowing inline scripts for local development/password reset page
-app.use(helmet({
+platformApp.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
@@ -65,9 +69,12 @@ app.use(helmet({
 }));
 
 // CORS: Restrict which origins can call this API
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
-  credentials: true,           // Allow cookies to be sent cross-origin
+platformApp.use(cors({
+  origin: (origin, callback) => {
+    // Reflect the requested origin back to the client to satisfy 'credentials: true' requirements
+    callback(null, true);
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
 }));
@@ -91,13 +98,18 @@ const generalLimiter = rateLimit({
 // ─────────────────────────────────────────────
 // 2. DATA PROCESSING (Body Parsing)
 // ─────────────────────────────────────────────
-app.use(express.json());                            // Parse JSON request bodies
-app.use(express.urlencoded({ extended: true }));    // Parse form data
+platformApp.use((req, res, next) => {
+    console.log(`[ACCESS] ${req.method} ${req.originalUrl} | path: ${req.path}`);
+    next();
+});
+
+platformApp.use(express.json());
+platformApp.use(express.urlencoded({ extended: true }));    // Parse form data
 
 // ─────────────────────────────────────────────
 // 3. SESSION MANAGEMENT
 // ─────────────────────────────────────────────
-app.use(session({
+platformApp.use(session({
   secret: process.env.SESSION_SECRET, // Must be provided in .env (No insecure hardcoded fallback)
   resave: false,
   saveUninitialized: false,
@@ -110,40 +122,45 @@ app.use(session({
 }));
 
 // Apply CSRF setup
-app.use(setupCsrf);
+platformApp.use(setupCsrf);
 
 // CSRF Protected API scope
 // We apply protection to all /api routes EXCEPT the token fetch itself
-app.use('/api', (req, res, next) => {
-  if (req.path === '/csrf-token') return next();
+platformApp.use('/api', (req, res, next) => {
+  // Bypass CSRF for stateless API Key requests
+  if (req.path === '/csrf-token' || req.headers['authorization']) return next();
   csrfProtection(req, res, next);
 });
 
 // CSRF Token Fetch Route
-app.get('/api/csrf-token', (req, res) => {
+platformApp.get('/api/csrf-token', (req, res) => {
   res.json({ success: true, csrfToken: req.session.csrfToken });
 });
+
+platformApp.get('/testme', (req, res) => res.json({ success: true }));
+// --- Analytics Routes (Mounted after all security middleware) ---
+platformApp.use('/api/analytics', analyticsRoutes);
 
 // ─────────────────────────────────────────────
 // 4. PROTECTED ADMIN PAGES
 // MUST BE BEFORE STATIC MIDDLEWARE TO TAKE PRECEDENCE
 // ─────────────────────────────────────────────
-app.get('/admin.html', isAdminSession, (req, res) => {
+platformApp.get('/admin.html', isAdminSession, (req, res) => {
   res.sendFile(path.join(__dirname, 'protected', 'admin.html'));
 });
 
 // ─────────────────────────────────────────────
 // 5. STATIC FILES (Frontend UI & uploaded profile images)
 // ─────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+platformApp.use(express.static(path.join(__dirname, 'public')));
+platformApp.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─────────────────────────────────────────────
 // 6. API DOCUMENTATION (Swagger/OpenAPI UI)
 // Accessible at /api-docs (Open)
 // ─────────────────────────────────────────────
 const swaggerSpec = require('./src/config/swagger');
-app.use('/api-docs', isAdminSession, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+platformApp.use('/api-docs', isAdminSession, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   swaggerOptions: {
     defaultModelsExpandDepth: -1,
   },
@@ -249,7 +266,7 @@ app.use('/api-docs', isAdminSession, swaggerUi.serve, swaggerUi.setup(swaggerSpe
     .swagger-ui ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
     .swagger-ui ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
   `,
-  customSiteTitle: "Phantasmagoria API Documentation",
+  customSiteTitle: "Phantasmagoria API DEBUG MODE",
   swaggerOptions: {
     defaultModelsExpandDepth: 1,
     defaultModelExpandDepth: 2,
@@ -265,18 +282,17 @@ app.use('/api-docs', isAdminSession, swaggerUi.serve, swaggerUi.setup(swaggerSpe
 // ─────────────────────────────────────────────
 
 // Apply auth-specific rate limit to auth routes (more restrictive)
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/bids', bidRoutes);
-app.use('/api/admin', verifyToken, verifyDeveloper, adminRoutes);
-app.use('/api/public', publicRoutes);
-app.use('/api/analytics', analyticsRoutes);
+platformApp.use('/api/auth', authLimiter, authRoutes);
+platformApp.use('/api/profile', profileRoutes);
+platformApp.use('/api/bids', bidRoutes);
+platformApp.use('/api/admin', verifyToken, verifyDeveloper, adminRoutes);
+platformApp.use('/api/public', publicRoutes);
 
 // Apply general rate limit to all other routes
-app.use(generalLimiter);
+platformApp.use(generalLimiter);
 
 // Health check endpoint (good practice, helps with deployment)
-app.get('/health', (req, res) => {
+platformApp.get('/health', (req, res) => {
   res.json({ success: true, message: 'Phantasmagoria API is running.', timestamp: new Date() });
 });
 
@@ -284,13 +300,14 @@ app.get('/health', (req, res) => {
 // 7. GLOBAL ERROR HANDLER 
 // Catches any errors passed via next(err)
 // ─────────────────────────────────────────────
-app.use((err, req, res, next) => {
+platformApp.use((err, req, res, next) => {
   console.error('Unhandled error:', err.stack);
   res.status(500).json({ success: false, message: 'Something went wrong on the server.' });
 });
 
 // 404 handler for unmatched routes
-app.use((req, res) => {
+platformApp.use((req, res) => {
+  console.log(`[404] No route found for ${req.method} ${req.url}`);
   res.status(404).json({ success: false, message: `Route ${req.method} ${req.path} not found.` });
 });
 
@@ -300,7 +317,7 @@ app.use((req, res) => {
 async function startServer() {
   await testConnection(); // Test DB connection before starting
   startScheduler();       // Start midnight bid scheduler
-  app.listen(PORT, () => {
+  platformApp.listen(PORT, () => {
     console.log(`Phantasmagoria API running on http://localhost:${PORT}`);
     console.log(`Swagger docs at http://localhost:${PORT}/api-docs`);
   });
@@ -318,4 +335,5 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
 });
 
+// Server initialized and watching.
 startServer();

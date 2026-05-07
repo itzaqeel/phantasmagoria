@@ -1,8 +1,11 @@
 const express = require('express');
 const router  = express.Router();
+console.log('[ROUTER] Analytics router initialized');
 const { verifyApiToken, requirePermission } = require('../security/auth');
 const analyticsController = require('../controllers/analyticsController');
 
+router.get('/test', (req, res) => res.json({ success: true, message: 'Analytics router is working!' }));
+router.get('/overview',                verifyApiToken, requirePermission('read:analytics'), analyticsController.overview);
 router.get('/skills-gap',             verifyApiToken, requirePermission('read:analytics'), analyticsController.skillsGap);
 router.get('/employment-by-industry', verifyApiToken, requirePermission('read:analytics'), analyticsController.employmentByIndustry);
 router.get('/top-job-titles',         verifyApiToken, requirePermission('read:analytics'), analyticsController.topJobTitles);

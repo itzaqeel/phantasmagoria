@@ -295,6 +295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (type === 'courses') {
       document.getElementById('crs-title').value = item.title;
       document.getElementById('crs-url').value = item.course_url || '';
+      document.getElementById('crs-date').value = item.completion_date ? item.completion_date.split('T')[0] : '';
       form.querySelector('button[type="submit"]').textContent = 'Update Course';
     } else if (type === 'employment') {
       document.getElementById('job-company').value = item.company;
@@ -361,7 +362,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (profileData) populateEditForm(profileData);
         loadCompletion();
       } else {
-        toast('Error processing request', 'error');
+        // Handle validation errors or server messages
+        let errMsg = 'Error processing request';
+        if (res.data && res.data.errors && Array.isArray(res.data.errors)) {
+          errMsg = res.data.errors.map(e => e.msg).join(' | ');
+        } else if (res.data && res.data.message) {
+          errMsg = res.data.message;
+        }
+        toast(errMsg, 'error');
       }
       btn.disabled = false;
     });
@@ -370,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setFormHandler('add-degree-form',  'degrees',        () => ({ title: document.getElementById('deg-title').value, institution: document.getElementById('deg-inst').value, degree_url: document.getElementById('deg-url').value, completion_date: document.getElementById('deg-date').value }));
   setFormHandler('add-cert-form',    'certifications', () => ({ title: document.getElementById('cert-title').value, cert_url: document.getElementById('cert-url').value, completion_date: document.getElementById('cert-date').value }));
   setFormHandler('add-licence-form', 'licences',       () => ({ title: document.getElementById('lic-title').value, awarding_body: document.getElementById('lic-body').value, licence_url: document.getElementById('lic-url').value }));
-  setFormHandler('add-course-form',  'courses',        () => ({ title: document.getElementById('crs-title').value, course_url: document.getElementById('crs-url').value }));
+  setFormHandler('add-course-form',  'courses',        () => ({ title: document.getElementById('crs-title').value, course_url: document.getElementById('crs-url').value, completion_date: document.getElementById('crs-date').value }));
   setFormHandler('add-job-form',     'employment',     () => ({ company: document.getElementById('job-company').value, role: document.getElementById('job-role').value, start_date: document.getElementById('job-start').value, end_date: document.getElementById('job-end').value }));
 
 

@@ -22,9 +22,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'overview': 'University Intelligence Overview',
                 'alumni': 'Detailed Alumni Analysis',
                 'bidding': 'Blind Bidding Trends',
-                'security': 'API Security & Scoping'
+                'profile': 'My Account & Identity'
             };
             document.getElementById('view-title').textContent = titleMap[view] || 'Dashboard';
+            
+            // Toggle global actions visibility
+            const actionsEl = document.getElementById('overview-actions');
+            if (actionsEl) {
+                actionsEl.style.display = (view === 'overview') ? 'flex' : 'none';
+            }
+
+            if (view === 'profile') {
+                renderProfileData();
+            }
         });
     });
 
@@ -43,11 +53,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Attempt to fetch real data
     await refreshDashboardData();
-    await refreshSecurityData();
+    await renderProfileData(); // Fetch profile early
 
     // Export Handlers
     setupExportHandlers();
-    setupSecurityHandlers();
 });
 
 function initChartDefaults() {
@@ -297,15 +306,8 @@ function renderEngagementChart(data) {
 // --- Export Functionality ---
 
 function setupExportHandlers() {
-    // CSV Export
-    document.querySelectorAll('.btn-secondary').forEach(btn => {
-        if (btn.textContent.includes('CSV')) {
-            btn.addEventListener('click', () => exportToCSV());
-        }
-        if (btn.textContent.includes('PDF')) {
-            btn.addEventListener('click', () => exportToPDF());
-        }
-    });
+    document.getElementById('btn-export-csv')?.addEventListener('click', () => exportToCSV());
+    document.getElementById('btn-export-pdf')?.addEventListener('click', () => exportToPDF());
 }
 
 function exportToCSV() {
@@ -341,88 +343,32 @@ function exportToPDF() {
     doc.save("Phantasmagoria_Report.pdf");
 }
 
-// --- Security & Scoping Logic ---
+// --- Profile Logic ---
 
-async function refreshSecurityData() {
-    const res = await API.get('/admin/tokens');
-    if (res.ok && res.data.tokens) {
-        renderTokenList(res.data.tokens);
-    }
+async function renderProfileData() {
+    const user = API.getUser();
+    if (!user) return;
+
+    // Fill UI elements
+    const nameEl = document.getElementById('profile-full-name');
+    const emailSubEl = document.getElementById('profile-email-sub');
+    const roleBadgeEl = document.getElementById('profile-role-badge');
     
-    // Usage logs usually require a token ID, but we can show recent logs for all tokens if backend supports
-    // For now we'll fetch logs for the first token as an example
-    if (res.data.tokens && res.data.tokens.length > 0) {
-        const usageRes = await API.get(`/admin/tokens/${res.data.tokens[0].id}/usage`);
-        if (usageRes.ok) {
-            renderUsageLogs(usageRes.data.recent_logs);
-        }
-    }
-}
+    const infoEmail = document.getElementById('info-email');
+    const infoRole = document.getElementById('info-role');
+    const infoJoined = document.getElementById('info-joined');
 
-function renderTokenList(tokens) {
-    const container = document.getElementById('token-list');
-    if (!container) return;
+    if (nameEl) nameEl.textContent = user.first_name ? `${user.first_name} ${user.last_name || ''}` : user.email.split('@')[0];
+    if (emailSubEl) emailSubEl.textContent = user.email;
+    if (roleBadgeEl) roleBadgeEl.textContent = user.role === 'developer' ? 'University Analyst (Dev)' : 'Alumni Viewer';
     
-    container.innerHTML = tokens.map(token => `
-        <tr>
-            <td style="padding: 1rem;">
-                <div class="fw-600">${token.token_name}</div>
-                <div class="text-xs text-muted">Created ${new Date(token.created_at).toLocaleDateString()}</div>
-            </td>
-            <td style="padding: 1rem;">
-                ${JSON.parse(token.permissions || '[]').map(p => `<span class="status-badge" style="background: rgba(251,191,36,0.1); color: var(--accent); margin-right: 0.25rem;">${p}</span>`).join('')}
-            </td>
-            <td style="padding: 1rem;">${token.last_used_at ? new Date(token.last_used_at).toLocaleTimeString() : 'Never'}</td>
-            <td style="padding: 1rem;">
-                <button class="btn btn-sm btn-danger" onclick="handleRevokeToken(${token.id})" ${token.is_revoked ? 'disabled' : ''}>
-                    ${token.is_revoked ? 'Revoked' : 'Revoke'}
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-function renderUsageLogs(logs) {
-    const container = document.getElementById('usage-logs');
-    if (!container) return;
+    if (infoEmail) infoEmail.textContent = user.email;
+    if (infoRole) infoRole.textContent = user.role;
+    if (infoJoined) infoJoined.textContent = new Date(user.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     
-    container.innerHTML = logs.map(log => `
-        <tr>
-            <td style="padding: 1rem;">${new Date(log.accessed_at).toLocaleString()}</td>
-            <td style="padding: 1rem;"><code style="background: rgba(255,255,255,0.05); padding: 2px 4px; border-radius: 4px;">${log.endpoint}</code></td>
-            <td style="padding: 1rem;">${log.ip_address}</td>
-            <td style="padding: 1rem;"><span style="color: var(--success);">200 OK</span></td>
-        </tr>
-    `).join('');
-}
-
-function setupSecurityHandlers() {
-    document.getElementById('btn-create-token')?.addEventListener('click', async () => {
-        const name = prompt("Enter Application Name:");
-        if (!name) return;
-        
-        const permsInput = prompt("Enter Scopes (comma separated, e.g. read:alumni,read:analytics):", "read:alumni");
-        const permissions = permsInput ? permsInput.split(',').map(p => p.trim()) : ['read:alumni'];
-        
-        const res = await API.post('/admin/tokens', { token_name: name, permissions });
-        if (res.ok) {
-            alert(`Token Generated Successfully!\n\nRAW TOKEN: ${res.data.api_token}\n\nWARNING: This will never be shown again. Copy it now.`);
-            refreshSecurityData();
-        } else {
-            alert("Error generating token: " + res.data.message);
-        }
-    });
-}
-
-async function handleRevokeToken(id) {
-    if (!confirm("Are you sure you want to revoke this key immediately? This cannot be undone.")) return;
-    
-    const res = await API.request(`/admin/tokens/${id}`, 'DELETE');
-    if (res.ok) {
-        refreshSecurityData();
-    } else {
-        alert("Error revoking token.");
-    }
+    // Set Avatar Initial
+    const avatar = document.getElementById('profile-avatar-large');
+    if (avatar) avatar.textContent = (user.first_name ? user.first_name[0] : user.email[0]).toUpperCase();
 }
 
 function getMockData() {

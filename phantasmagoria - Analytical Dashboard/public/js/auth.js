@@ -38,15 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('login-password').value;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
+            const { ok, data } = await API.post('/auth/login', { email, password });
 
-            const data = await response.json();
-
-            if (data.success) {
+            if (ok && data.success) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 window.location.href = 'index.html';
@@ -71,15 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const role = document.getElementById('reg-role').value;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role })
-            });
+            const { ok, data } = await API.post('/auth/register', { email, password, role });
 
-            const data = await response.json();
-
-            if (data.success) {
+            if (ok && data.success) {
                 registerSuccess.textContent = 'Registration successful! Please check your email to verify.';
                 registerSuccess.style.display = 'block';
                 registerForm.reset();

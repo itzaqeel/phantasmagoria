@@ -55,35 +55,35 @@ const profileValidation = [
 
 const degreeValidation = [
   body('title').trim().notEmpty().withMessage('Degree title is required.'),
-  body('institution').optional().trim(),
-  body('degree_url').optional().isURL({ require_protocol: true }).withMessage('Degree URL must be valid.'),
-  body('completion_date').optional().isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
+  body('institution').optional({ checkFalsy: true }).trim(),
+  body('degree_url').optional({ checkFalsy: true }).isURL({ require_protocol: true }).withMessage('Degree URL must be valid.'),
+  body('completion_date').optional({ checkFalsy: true }).isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
 ];
 
 const certValidation = [
   body('title').trim().notEmpty().withMessage('Certification title is required.'),
-  body('cert_url').optional().isURL({ require_protocol: true }).withMessage('Cert URL must be valid.'),
-  body('completion_date').optional().isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
+  body('cert_url').optional({ checkFalsy: true }).isURL({ require_protocol: true }).withMessage('Cert URL must be valid.'),
+  body('completion_date').optional({ checkFalsy: true }).isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
 ];
 
 const licenceValidation = [
   body('title').trim().notEmpty().withMessage('Licence title is required.'),
-  body('awarding_body').optional().trim(),
-  body('licence_url').optional().isURL({ require_protocol: true }).withMessage('Licence URL must be valid.'),
-  body('completion_date').optional().isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
+  body('awarding_body').optional({ checkFalsy: true }).trim(),
+  body('licence_url').optional({ checkFalsy: true }).isURL({ require_protocol: true }).withMessage('Licence URL must be valid.'),
+  body('completion_date').optional({ checkFalsy: true }).isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
 ];
 
 const courseValidation = [
   body('title').trim().notEmpty().withMessage('Course title is required.'),
-  body('course_url').optional().isURL({ require_protocol: true }).withMessage('Course URL must be valid.'),
-  body('completion_date').optional().isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
+  body('course_url').optional({ checkFalsy: true }).isURL({ require_protocol: true }).withMessage('Course URL must be valid.'),
+  body('completion_date').optional({ checkFalsy: true }).isDate().withMessage('Invalid date format. Use YYYY-MM-DD.'),
 ];
 
 const employmentValidation = [
   body('company').trim().notEmpty().withMessage('Company name is required.'),
   body('role').trim().notEmpty().withMessage('Job role is required.'),
   body('start_date').isDate().withMessage('Start date is required (YYYY-MM-DD).'),
-  body('end_date').optional().isDate().withMessage('End date must be valid (YYYY-MM-DD).'),
+  body('end_date').optional({ checkFalsy: true }).isDate().withMessage('End date must be valid (YYYY-MM-DD).'),
 ];
 
 // Profile routes

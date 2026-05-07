@@ -201,7 +201,7 @@ async function addDegree(req, res) {
 
     const [result] = await pool.query(
       'INSERT INTO degrees (profile_id, title, institution, degree_url, completion_date) VALUES (?, ?, ?, ?, ?)',
-      [profileId, title, institution, degree_url, completion_date]
+      [profileId, title, institution || null, degree_url || null, completion_date || null]
     );
 
     res.status(201).json({ success: true, message: 'Degree added.', id: result.insertId });
@@ -242,7 +242,7 @@ async function updateDegree(req, res) {
 
     await pool.query(
       'UPDATE degrees SET title = ?, institution = ?, degree_url = ?, completion_date = ? WHERE id = ?',
-      [title, institution, degree_url, completion_date, id]
+      [title, institution || null, degree_url || null, completion_date || null, id]
     );
 
     res.json({ success: true, message: 'Degree updated.' });
@@ -267,7 +267,7 @@ async function addCertification(req, res) {
 
     const [result] = await pool.query(
       'INSERT INTO certifications (profile_id, title, cert_url, completion_date) VALUES (?, ?, ?, ?)',
-      [profileId, title, cert_url, completion_date]
+      [profileId, title, cert_url || null, completion_date || null]
     );
 
     res.status(201).json({ success: true, message: 'Certification added.', id: result.insertId });
@@ -305,7 +305,7 @@ async function updateCertification(req, res) {
 
     await pool.query(
       'UPDATE certifications SET title = ?, cert_url = ?, completion_date = ? WHERE id = ?',
-      [title, cert_url, completion_date, id]
+      [title, cert_url || null, completion_date || null, id]
     );
 
     res.json({ success: true, message: 'Certification updated.' });
@@ -330,7 +330,7 @@ async function addLicence(req, res) {
 
     const [result] = await pool.query(
       'INSERT INTO licences (profile_id, title, awarding_body, licence_url, completion_date) VALUES (?, ?, ?, ?, ?)',
-      [profileId, title, awarding_body, licence_url, completion_date]
+      [profileId, title, awarding_body || null, licence_url || null, completion_date || null]
     );
 
     res.status(201).json({ success: true, message: 'Licence added.', id: result.insertId });
@@ -368,7 +368,7 @@ async function updateLicence(req, res) {
 
     await pool.query(
       'UPDATE licences SET title = ?, awarding_body = ?, licence_url = ?, completion_date = ? WHERE id = ?',
-      [title, awarding_body, licence_url, completion_date, id]
+      [title, awarding_body || null, licence_url || null, completion_date || null, id]
     );
 
     res.json({ success: true, message: 'Licence updated.' });
@@ -393,7 +393,7 @@ async function addCourse(req, res) {
 
     const [result] = await pool.query(
       'INSERT INTO courses (profile_id, title, course_url, completion_date) VALUES (?, ?, ?, ?)',
-      [profileId, title, course_url, completion_date]
+      [profileId, title, course_url || null, completion_date || null]
     );
 
     res.status(201).json({ success: true, message: 'Course added.', id: result.insertId });
@@ -431,7 +431,7 @@ async function updateCourse(req, res) {
 
     await pool.query(
       'UPDATE courses SET title = ?, course_url = ?, completion_date = ? WHERE id = ?',
-      [title, course_url, completion_date, id]
+      [title, course_url || null, completion_date || null, id]
     );
 
     res.json({ success: true, message: 'Course updated.' });

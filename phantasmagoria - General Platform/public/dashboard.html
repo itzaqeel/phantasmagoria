@@ -186,7 +186,10 @@
                 <div id="tab-courses" class="tab-content">
                   <form id="add-course-form" class="flex flex-col gap-2 mb-4 p-3 bg-muted rounded">
                     <input type="text" id="crs-title" class="form-input" placeholder="Short Professional Course Title" required>
-                    <input type="url"  id="crs-url"   class="form-input" placeholder="Course Platform / Provider URL">
+                    <div class="flex gap-2">
+                       <input type="url"  id="crs-url"   class="form-input" placeholder="Course Platform / Provider URL">
+                       <input type="date" id="crs-date"  class="form-input" title="Completion Date">
+                    </div>
                     <button type="submit" class="btn btn-secondary btn-sm">Add Short Course</button>
                   </form>
                   <div id="courses-list"></div>

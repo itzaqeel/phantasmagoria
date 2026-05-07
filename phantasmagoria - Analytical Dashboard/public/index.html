@@ -45,9 +45,9 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-view="security">
-                        <span class="icon">🛡️</span>
-                        <span>API Security</span>
+                    <a href="#" class="nav-link" data-view="profile">
+                        <span class="icon">👤</span>
+                        <span>My Profile</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -70,9 +70,15 @@
 
     <!-- Main Content Area -->
     <main class="main-container">
-        <header>
-            <h2 id="view-title">University Intelligence Overview</h2>
-            <p class="subtitle">Real-time engagement and distribution metrics for the Alumni Network.</p>
+        <header style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+            <div>
+                <h2 id="view-title">University Intelligence Overview</h2>
+                <p class="subtitle" style="margin-bottom: 0;">Real-time engagement and distribution metrics for the Alumni Network.</p>
+            </div>
+            <div id="overview-actions" class="dashboard-view-actions">
+                <button class="btn btn-secondary btn-sm" id="btn-export-csv">📥 Export CSV</button>
+                <button class="btn btn-secondary btn-sm" id="btn-export-pdf">📄 Export PDF</button>
+            </div>
         </header>
 
         <!-- Views -->
@@ -107,7 +113,6 @@
                 <div class="card chart-container">
                     <div class="chart-title">
                         <span>Degree Distribution</span>
-                        <button class="btn btn-sm btn-secondary" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Export CSV</button>
                     </div>
                     <canvas id="degreeChart"></canvas>
                 </div>
@@ -116,7 +121,6 @@
                 <div class="card chart-container">
                     <div class="chart-title">
                         <span>Daily Bidding Volume</span>
-                        <button class="btn btn-sm btn-secondary" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Export PDF</button>
                     </div>
                     <canvas id="biddingChart"></canvas>
                 </div>
@@ -130,7 +134,7 @@
                 </div>
 
                 <!-- Top Bidders Performance -->
-                <div class="card chart-container">
+                <div class="card chart-container chart-radar">
                     <div class="chart-title">
                         <span>Top Sponsoring Alumni</span>
                     </div>
@@ -147,7 +151,7 @@
                 </div>
 
                 <!-- Skills Gap Analysis -->
-                <div class="card chart-container">
+                <div class="card chart-container chart-radar">
                     <div class="chart-title">
                         <span>Independent Certifications vs Curriculum</span>
                         <span class="status-badge status-danger">Critical Gap</span>
@@ -173,64 +177,57 @@
             </div>
         </div>
 
-        <!-- Security View -->
-        <div id="view-security" class="dashboard-view hidden">
-            <div class="card" style="margin-bottom: 2rem;">
-                <div class="chart-title">
-                    <span>Manage Client API Keys</span>
-                    <button class="btn btn-sm btn-primary" id="btn-create-token">+ Generate New Key</button>
-                </div>
-                <p class="text-sm text-muted" style="margin-bottom: 1.5rem;">Create scoped tokens for external applications (AR App, Mobile Client, etc.)</p>
-                
-                <div class="table-container">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="text-align: left; border-bottom: 1px solid var(--border);">
-                                <th style="padding: 1rem;">Application Name</th>
-                                <th style="padding: 1rem;">Permissions</th>
-                                <th style="padding: 1rem;">Last Used</th>
-                                <th style="padding: 1rem;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="token-list">
-                            <!-- Token rows will be injected here -->
-                            <tr>
-                                <td style="padding: 1rem;">University AR Mobile App</td>
-                                <td style="padding: 1rem;">
-                                    <span class="status-badge" style="background: rgba(251,191,36,0.1); color: var(--accent);">read:alumni_of_day</span>
-                                </td>
-                                <td style="padding: 1rem;">2 hours ago</td>
-                                <td style="padding: 1rem;"><button class="btn btn-sm btn-danger">Revoke</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- Profile View -->
+        <div id="view-profile" class="dashboard-view hidden">
+            <div class="card profile-header-card" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; padding: 2rem;">
+                <div id="profile-avatar-large" style="width: 120px; height: 120px; border-radius: 50%; background: var(--accent-glow); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 3rem;">👤</div>
+                <div>
+                    <h3 id="profile-full-name" style="font-size: 2rem; margin-bottom: 0.25rem;">—</h3>
+                    <p id="profile-email-sub" style="color: var(--text-secondary); margin-bottom: 1rem;">—</p>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span id="profile-role-badge" class="status-badge" style="background: rgba(251,191,36,0.1); color: var(--accent);">—</span>
+                        <span class="status-badge" style="background: rgba(16,185,129,0.1); color: var(--success);">Verified</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="chart-title">
-                    <span>API Usage Logs (Audit Trail)</span>
+            <div class="profile-details-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                <div class="card">
+                    <div class="chart-title"><span>Account Information</span></div>
+                    <div class="profile-info-list">
+                        <div class="info-item" style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Email Address</label>
+                            <div id="info-email" style="font-weight: 500;">—</div>
+                        </div>
+                        <div class="info-item" style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Role / Access Level</label>
+                            <div id="info-role" style="font-weight: 500; text-transform: capitalize;">—</div>
+                        </div>
+                        <div class="info-item" style="margin-bottom: 1.25rem;">
+                            <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Member Since</label>
+                            <div id="info-joined" style="font-weight: 500;">—</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="table-container">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="text-align: left; border-bottom: 1px solid var(--border);">
-                                <th style="padding: 1rem;">Timestamp</th>
-                                <th style="padding: 1rem;">Endpoint</th>
-                                <th style="padding: 1rem;">Client IP</th>
-                                <th style="padding: 1rem;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usage-logs">
-                            <!-- Log rows will be injected here -->
-                            <tr>
-                                <td style="padding: 1rem;">2024-05-07 14:22:10</td>
-                                <td style="padding: 1rem;">GET /api/public/featured</td>
-                                <td style="padding: 1rem;">192.168.1.42</td>
-                                <td style="padding: 1rem;"><span style="color: var(--success);">200 OK</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div class="card">
+                    <div class="chart-title"><span>Security Status</span></div>
+                    <div class="profile-info-list">
+                        <div class="info-item" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Two-Factor Auth</label>
+                                <div style="font-weight: 500;">Disabled</div>
+                            </div>
+                            <button class="btn btn-sm btn-secondary">Enable</button>
+                        </div>
+                        <div class="info-item" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Password</label>
+                                <div style="font-weight: 500;">Last changed 30 days ago</div>
+                            </div>
+                            <button class="btn btn-sm btn-secondary">Update</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

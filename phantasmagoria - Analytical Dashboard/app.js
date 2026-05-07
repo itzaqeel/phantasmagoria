@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const axios = require('axios'); // For proxying
 const path = require('path');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
@@ -13,9 +14,12 @@ const PORT = process.env.PORT || 4000;
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
-            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "default-src": ["'self'"],
             "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            "font-src": ["'self'", "https://fonts.gstatic.com"],
             "img-src": ["'self'", "data:", "https://*"],
+            "connect-src": ["'self'", "http://localhost:3000", "http://127.0.0.1:3000"],
         },
     },
 }));
@@ -47,8 +51,75 @@ app.use('/api', limiter);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Health Check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.json({ status: 'up', timestamp: new Date() });
+});
+
+// --- API Proxying Logic ---
+
+// 1. Analytics Proxy (Requires API Key Injection)
+app.use('/api/analytics', async (req, res) => {
+    try {
+        const endpoint = req.path;
+        const rawKey = process.env.CW1_API_KEY;
+        const apiKey = rawKey ? rawKey.trim() : null;
+        
+        console.log(`[PROXY] Request: analytics${endpoint}`);
+        console.log(`[PROXY] Key present: ${!!apiKey} | Key length: ${apiKey ? apiKey.length : 0}`);
+
+        if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Dashboard Error: CW1_API_KEY is not configured in .env' 
+            });
+        }
+
+        const response = await axios({
+            method: req.method,
+            url: `${process.env.CW1_API_URL}/analytics${endpoint}`,
+            params: req.query,
+            data: req.body,
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        if (response.data.success && response.data.data) {
+            res.json(response.data.data);
+        } else {
+            res.json(response.data);
+        }
+    } catch (err) {
+        console.error('Analytics Proxy Error:', err.message);
+        res.status(err.response?.status || 500).json({
+            success: false,
+            message: 'Failed to fetch data from General Platform',
+            error: err.response?.data?.message || err.message
+        });
+    }
+});
+
+// 2. General API Proxy (Pass-through for Auth, Profile, etc.)
+app.use('/api', async (req, res) => {
+    try {
+        const endpoint = req.path;
+        const url = `${process.env.CW1_API_URL}${endpoint}`;
+        
+        const response = await axios({
+            method: req.method,
+            url: url,
+            data: req.body,
+            params: req.query,
+            headers: {
+                ...req.headers,
+                host: new URL(process.env.CW1_API_URL).host
+            },
+            validateStatus: () => true
+        });
+
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        console.error('General Proxy Error:', err.message);
+        res.status(500).json({ success: false, message: 'Proxy connection failed.' });
+    }
 });
 
 // Fallback for SPA (404)
