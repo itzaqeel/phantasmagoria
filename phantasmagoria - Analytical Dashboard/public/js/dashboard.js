@@ -38,8 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadAlumniList({});
             }
             if (view === 'analytics') {
-                loadFilterOptions().then(() => setupAnalyticsFilters());
-                loadAnalyticsCharts({});
+                loadAnalyticsCharts();
             }
         });
     });
@@ -212,28 +211,29 @@ function updateAnalyticsBadge(f) {
     badge.textContent   = count ? `${count} active` : '';
 }
 
-async function loadAnalyticsCharts(filters = {}) {
-    const params = new URLSearchParams();
-    if (filters.programme) params.set('programme', filters.programme);
-    if (filters.gradYear)  params.set('gradYear',  filters.gradYear);
-    const qs = params.toString() ? `?${params.toString()}` : '';
+async function loadAnalyticsCharts() {
+    if (window._analyticsLoaded) return; // don't re-fetch on repeated tab clicks
+    window._analyticsLoaded = true;
 
     const [indRes, jobRes, empRes, skillsRes, statusRes] = await Promise.all([
-        API.get(`/analytics/employment-by-industry${qs}`),
-        API.get(`/analytics/top-job-titles${qs}`),
-        API.get(`/analytics/top-employers${qs}`),
-        API.get(`/analytics/skills-gap${qs}`),
-        API.get(`/analytics/employed-vs-unemployed${qs}`)
+        API.get('/analytics/employment-by-industry'),
+        API.get('/analytics/top-job-titles'),
+        API.get('/analytics/top-employers'),
+        API.get('/analytics/skills-gap'),
+        API.get('/analytics/employed-vs-unemployed')
     ]);
 
     const rows = r => Array.isArray(r.data) ? r.data : (r.data?.data || []);
+    const overview = window._lastOverviewData || {};
 
-    renderAIndustry('aIndustryChart',   rows(indRes));
+    renderAIndustry('aIndustryChart',    rows(indRes));
     renderAJobTitles('aJobTitlesChart',  rows(jobRes));
     renderAHBar('aEmployersChart',       rows(empRes),  r => r.company, r => r.count);
     renderASkillsGap('aSkillsGapChart',  skillsRes.data || {});
     renderACertTypes('aCertTypesChart',  skillsRes.data || {});
     renderAEmpStatus('aEmpStatusChart',  statusRes.data || {});
+    renderAGradTrends('aGradChart',      overview.graduationTrends || { labels: [], values: [] });
+    renderADegrees('aDegreeBubble',      overview.degreeDist       || { labels: [], values: [] });
 }
 
 // 1. Polar Area — Employment by Industry Sector
@@ -348,7 +348,7 @@ function renderASkillsGap(canvasId, data) {
     });
 }
 
-// 5. Pie — Certificate Types
+// 5. Doughnut — Certificate Types
 function renderACertTypes(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
@@ -356,7 +356,7 @@ function renderACertTypes(canvasId, data) {
     const certs = (data.certifications || []).slice(0, 8);
     const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#92400e','#fcd34d','#fde68a','#78350f'];
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: certs.length ? certs.map(c => c.title) : ['No data'],
             datasets: [{ data: certs.length ? certs.map(c => c.count) : [1],
@@ -367,12 +367,13 @@ function renderACertTypes(canvasId, data) {
             responsive: true, maintainAspectRatio: false,
             layout: { padding: 20 },
             plugins: { legend: { position: 'bottom',
-                labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 } } }
+                labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 } } },
+            cutout: '65%'
         }
     });
 }
 
-// 6. Doughnut — Employment Status
+// 6. Pie — Employment Status
 function renderAEmpStatus(canvasId, data) {
     if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
     const ctx = document.getElementById(canvasId)?.getContext('2d');
@@ -380,7 +381,7 @@ function renderAEmpStatus(canvasId, data) {
     const employed   = Number(data.employed   || 0);
     const unemployed = Number(data.unemployed || 0);
     _aCharts[canvasId] = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: ['Currently Employed', 'Not Employed'],
             datasets: [{ data: [employed, unemployed],
@@ -391,8 +392,69 @@ function renderAEmpStatus(canvasId, data) {
             responsive: true, maintainAspectRatio: false,
             layout: { padding: 20 },
             plugins: { legend: { position: 'bottom',
-                labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 10 } } },
-            cutout: '65%'
+                labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 10 } } }
+        }
+    });
+}
+
+// 7. Line + fill (Area) — Graduation Trends
+function renderAGradTrends(canvasId, data) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(251,191,36,0.45)');
+    gradient.addColorStop(1, 'rgba(251,191,36,0)');
+    const hasData = data.labels?.length > 0;
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: hasData ? data.labels : ['No data'],
+            datasets: [{ label: 'Graduates', data: hasData ? data.values : [0],
+                borderColor: '#fbbf24', backgroundColor: gradient,
+                fill: true, tension: 0.4,
+                pointBackgroundColor: '#fbbf24', pointRadius: 6, pointHoverRadius: 9,
+                borderWidth: 2 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: 20 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+}
+
+// 8. Bubble — Degree Distribution (size = alumni count)
+function renderADegrees(canvasId, data) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#fcd34d','#fde68a','#92400e','#78350f'];
+    const hasData = data.labels?.length > 0;
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'bubble',
+        data: {
+            datasets: hasData ? data.labels.map((label, i) => ({
+                label,
+                data: [{ x: (i + 1) * 1.5, y: data.values[i], r: Math.max(10, Math.min(40, data.values[i] * 12)) }],
+                backgroundColor: palette[i % palette.length] + 'aa',
+                borderColor:     palette[i % palette.length],
+                borderWidth: 2
+            })) : [{ label: 'No data', data: [{ x: 1, y: 0, r: 15 }], backgroundColor: '#fbbf2444' }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: 20 },
+            plugins: { legend: { position: 'bottom',
+                labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 8 } } },
+            scales: {
+                x: { display: false },
+                y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, ticks: { color: '#94a3b8' } }
+            }
         }
     });
 }
