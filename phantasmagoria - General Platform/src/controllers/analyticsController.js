@@ -275,8 +275,42 @@ async function filterOptions(req, res) {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 }
+async function employedVsUnemployed(req, res) {
+  try {
+    const { programme, gradYear } = req.query;
+    const conditions = ['u.role = "alumni"'];
+    const params = [];
+
+    if (programme) {
+      conditions.push('p.id IN (SELECT profile_id FROM degrees WHERE title LIKE ?)');
+      params.push(`%${programme}%`);
+    }
+    if (gradYear) {
+      conditions.push('p.id IN (SELECT profile_id FROM degrees WHERE YEAR(completion_date) = ?)');
+      params.push(parseInt(gradYear));
+    }
+
+    const [[result]] = await pool.query(`
+      SELECT
+        COUNT(DISTINCT CASE WHEN curr.profile_id IS NOT NULL THEN u.id END) AS employed,
+        COUNT(DISTINCT CASE WHEN curr.profile_id IS NULL     THEN u.id END) AS unemployed
+      FROM users u
+      JOIN profiles p ON p.user_id = u.id
+      LEFT JOIN (
+        SELECT DISTINCT profile_id FROM employment WHERE end_date IS NULL
+      ) curr ON curr.profile_id = p.id
+      WHERE ${conditions.join(' AND ')}
+    `, params);
+
+    res.json({ success: true, data: { employed: result.employed || 0, unemployed: result.unemployed || 0 } });
+  } catch (err) {
+    console.error('employedVsUnemployed error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+}
 
 async function alumniProfile(req, res) {
+
   try {
     const { id } = req.params;
     const [users] = await pool.query(`
@@ -314,4 +348,4 @@ async function alumniProfile(req, res) {
   }
 }
 
-module.exports = { overview, skillsGap, employmentByIndustry, topJobTitles, topEmployers, geographic, alumniList, alumniProfile, filterOptions };
+module.exports = { overview, skillsGap, employmentByIndustry, topJobTitles, topEmployers, geographic, alumniList, alumniProfile, filterOptions, employedVsUnemployed };

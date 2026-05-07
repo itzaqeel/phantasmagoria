@@ -38,7 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadAlumniList({});
             }
             if (view === 'analytics') {
-                renderAllCharts(window._lastOverviewData || getMockData());
+                loadFilterOptions().then(() => setupAnalyticsFilters());
+                loadAnalyticsCharts({});
             }
         });
     });
@@ -165,7 +166,175 @@ function renderOverviewCharts(data) {
     }
 }
 
-// --- Chart Renderers ---
+// ─── Analytics View ─────────────────────────────────────────────────────────
+
+const _aCharts = {}; // keyed by canvas ID to allow destroy+re-render on filter
+
+function setupAnalyticsFilters() {
+    // Populate from same filter-options data already loaded for Alumni
+    const populate = (destId, srcId) => {
+        const src  = document.getElementById(srcId);
+        const dest = document.getElementById(destId);
+        if (!src || !dest || dest.options.length > 1) return; // already populated
+        Array.from(src.options).slice(1).forEach(opt => {
+            dest.appendChild(opt.cloneNode(true));
+        });
+    };
+    populate('analytics-filter-programme', 'filter-programme');
+    populate('analytics-filter-year',      'filter-grad-year');
+
+    document.getElementById('analytics-btn-apply')?.addEventListener('click', () => {
+        const f = getAnalyticsFilters();
+        updateAnalyticsBadge(f);
+        loadAnalyticsCharts(f);
+    });
+    document.getElementById('analytics-btn-clear')?.addEventListener('click', () => {
+        ['analytics-filter-programme', 'analytics-filter-year'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
+        updateAnalyticsBadge({});
+        loadAnalyticsCharts({});
+    });
+}
+
+function getAnalyticsFilters() {
+    return {
+        programme: document.getElementById('analytics-filter-programme')?.value || '',
+        gradYear:  document.getElementById('analytics-filter-year')?.value      || ''
+    };
+}
+
+function updateAnalyticsBadge(f) {
+    const badge = document.getElementById('analytics-filter-badge');
+    if (!badge) return;
+    const count = [f.programme, f.gradYear].filter(Boolean).length;
+    badge.style.display = count ? 'inline' : 'none';
+    badge.textContent   = count ? `${count} active` : '';
+}
+
+async function loadAnalyticsCharts(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.programme) params.set('programme', filters.programme);
+    if (filters.gradYear)  params.set('gradYear',  filters.gradYear);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const [indRes, jobRes, empRes, skillsRes, statusRes] = await Promise.all([
+        API.get(`/analytics/employment-by-industry${qs}`),
+        API.get(`/analytics/top-job-titles${qs}`),
+        API.get(`/analytics/top-employers${qs}`),
+        API.get(`/analytics/skills-gap${qs}`),
+        API.get(`/analytics/employed-vs-unemployed${qs}`)
+    ]);
+
+    const rows = r => Array.isArray(r.data) ? r.data : (r.data?.data || []);
+
+    renderAHBar('aIndustryChart',  rows(indRes),  r => r.sector,           r => r.count,  false);
+    renderAHBar('aJobTitlesChart', rows(jobRes),  r => r.title || r.role,  r => r.count,  true);
+    renderAHBar('aEmployersChart', rows(empRes),  r => r.company,          r => r.count,  true);
+    renderASkillsGap('aSkillsGapChart', skillsRes.data || {});
+    renderACertTypes('aCertTypesChart', skillsRes.data || {});
+    renderAEmpStatus('aEmpStatusChart', statusRes.data || {});
+}
+
+// Horizontal or vertical bar chart helper
+function renderAHBar(canvasId, rows, labelFn, valueFn, horizontal) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const hasData = rows.length > 0;
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: hasData ? rows.map(labelFn) : ['No data'],
+            datasets: [{ label: 'Count', data: hasData ? rows.map(valueFn) : [0],
+                backgroundColor: 'rgba(251,191,36,0.8)', borderRadius: 6 }]
+        },
+        options: {
+            indexAxis: horizontal ? 'y' : 'x',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+                y: { grid: { display: !horizontal } }
+            }
+        }
+    });
+}
+
+// Skills Gap — top certifications as a bar chart (actual live data)
+function renderASkillsGap(canvasId, data) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const certs = (data.certifications || []).slice(0, 10);
+    const hasData = certs.length > 0;
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: hasData ? certs.map(c => c.title) : ['No certifications'],
+            datasets: [{ label: 'Alumni with cert', data: hasData ? certs.map(c => c.count) : [0],
+                backgroundColor: ['#fbbf24','#f59e0b','#d97706','#b45309','#92400e',
+                                  '#fcd34d','#fde68a','#fef3c7','#fed7aa','#fdba74'],
+                borderRadius: 6 }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// Certificate Types — doughnut of top certs
+function renderACertTypes(canvasId, data) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const certs = (data.certifications || []).slice(0, 8);
+    const palette = ['#fbbf24','#d97706','#f59e0b','#b45309','#92400e','#fcd34d','#fde68a','#78350f'];
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: certs.length ? certs.map(c => c.title) : ['No data'],
+            datasets: [{ data: certs.length ? certs.map(c => c.count) : [1],
+                backgroundColor: palette, borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#94a3b8', boxWidth: 12 } } },
+            cutout: '65%'
+        }
+    });
+}
+
+// Employment Status — doughnut (Employed vs Unemployed)
+function renderAEmpStatus(canvasId, data) {
+    if (_aCharts[canvasId]) { _aCharts[canvasId].destroy(); }
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const employed   = Number(data.employed   || 0);
+    const unemployed = Number(data.unemployed || 0);
+    _aCharts[canvasId] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Currently Employed', 'Not Employed'],
+            datasets: [{ data: [employed, unemployed],
+                backgroundColor: ['rgba(16,185,129,0.85)', 'rgba(239,68,68,0.75)'],
+                borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14 } } },
+            cutout: '65%'
+        }
+    });
+}
+
+
 
 function renderDegreeChart(data) {
     const ctx = document.getElementById('degreeChart').getContext('2d');

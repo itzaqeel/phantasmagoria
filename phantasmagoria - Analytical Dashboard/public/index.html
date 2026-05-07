@@ -122,52 +122,91 @@
             </div>
         </div>
 
-        <!-- Analytics View (all detailed charts) -->
+        <!-- Analytics View -->
         <div id="view-analytics" class="dashboard-view hidden">
+
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05));border:1px solid rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;">⚡</div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.95rem;">Filter</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Filter all charts by programme and graduation year</div>
+                        </div>
+                        <span id="analytics-filter-badge" style="display:none;background:var(--accent);color:#020617;border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;margin-left:0.25rem;"></span>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button class="btn btn-secondary btn-sm" id="analytics-btn-clear">✕ Clear</button>
+                        <button class="btn btn-primary btn-sm" id="analytics-btn-apply">Apply Filters</button>
+                    </div>
+                </div>
+                <div class="filter-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="filter-field">
+                        <label class="filter-label"><span class="filter-label-icon">🎓</span> Programme / Degree</label>
+                        <select id="analytics-filter-programme" class="filter-select"><option value="">All Programmes</option></select>
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label"><span class="filter-label-icon">📅</span> Graduation Year</label>
+                        <select id="analytics-filter-year" class="filter-select"><option value="">All Years</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6-chart grid -->
             <div class="charts-grid">
-                <!-- Alumni by Degree -->
-                <div class="card chart-container">
-                    <div class="chart-title"><span>Degree Distribution</span></div>
-                    <canvas id="degreeChart"></canvas>
-                </div>
-                <!-- Geographic Distribution -->
-                <div class="card chart-container">
-                    <div class="chart-title"><span>Alumni Employment Hubs</span></div>
-                    <canvas id="geoChart"></canvas>
-                </div>
-                <!-- Top Bidders -->
-                <div class="card chart-container chart-radar">
-                    <div class="chart-title"><span>Top Sponsoring Alumni</span></div>
-                    <canvas id="topBiddersChart"></canvas>
-                </div>
-                <!-- Industry Growth -->
+                <!-- 1. Employment by Industry Sector -->
                 <div class="card chart-container">
                     <div class="chart-title">
-                        <span>Top Industry Sectors</span>
-                        <span class="status-badge status-warning">Emerging</span>
+                        <span>Employment by Industry Sector</span>
+                        <span class="status-badge status-success">Live</span>
                     </div>
-                    <canvas id="industryChart"></canvas>
+                    <canvas id="aIndustryChart"></canvas>
                 </div>
-                <!-- Skills Gap -->
+                <!-- 2. Most Common Job Titles -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Most Common Job Titles</span>
+                        <span class="status-badge status-success">Live</span>
+                    </div>
+                    <canvas id="aJobTitlesChart"></canvas>
+                </div>
+                <!-- 3. Top Employers -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Top Employers</span>
+                        <span class="status-badge status-success">Live</span>
+                    </div>
+                    <canvas id="aEmployersChart"></canvas>
+                </div>
+                <!-- 4. Curriculum Skills Gap -->
+                <div class="card chart-container">
+                    <div class="chart-title">
+                        <span>Curriculum Skills Gap</span>
+                        <span class="status-badge status-danger">Gap Analysis</span>
+                    </div>
+                    <canvas id="aSkillsGapChart"></canvas>
+                </div>
+                <!-- 5. Certificate Types Distribution -->
                 <div class="card chart-container chart-radar">
                     <div class="chart-title">
-                        <span>Certifications vs Curriculum</span>
-                        <span class="status-badge status-danger">Critical Gap</span>
+                        <span>Certificate Types</span>
+                        <span class="status-badge status-warning">Distribution</span>
                     </div>
-                    <canvas id="skillsGapChart"></canvas>
+                    <canvas id="aCertTypesChart"></canvas>
                 </div>
-                <!-- Salary -->
-                <div class="card chart-container">
-                    <div class="chart-title"><span>Average Starting Salary (GBP)</span></div>
-                    <canvas id="salaryChart"></canvas>
-                </div>
-                <!-- Engagement -->
-                <div class="card chart-container">
-                    <div class="chart-title"><span>Platform Engagement Trends</span></div>
-                    <canvas id="engagementChart"></canvas>
+                <!-- 6. Employment Status -->
+                <div class="card chart-container chart-radar">
+                    <div class="chart-title">
+                        <span>Employment Status</span>
+                        <span class="status-badge status-success">Live</span>
+                    </div>
+                    <canvas id="aEmpStatusChart"></canvas>
                 </div>
             </div>
         </div>
+
+
 
         <!-- Alumni Directory View -->
         <div id="view-alumni" class="dashboard-view hidden">
