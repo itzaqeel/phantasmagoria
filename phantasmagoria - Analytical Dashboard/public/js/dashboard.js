@@ -43,13 +43,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Logout Logic
-    document.getElementById('logout-btn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = 'auth.html';
-    });
     
     // Fetch real data immediately
     await refreshDashboardData();
