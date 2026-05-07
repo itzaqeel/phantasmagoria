@@ -173,11 +173,13 @@ async function overview(req, res) {
     // Degree distribution for Analytics charts
     const [degreeRows] = await pool.query('SELECT title, COUNT(*) as count FROM degrees GROUP BY title ORDER BY count DESC LIMIT 5');
 
-    // Graduation trends — degrees grouped by completion year
+    // Graduation trends — all degrees, grouped by completion year (NULL = Undated)
     const [gradTrends] = await pool.query(
-      `SELECT YEAR(completion_date) AS year, COUNT(*) AS count
-       FROM degrees WHERE completion_date IS NOT NULL
-       GROUP BY year ORDER BY year ASC`
+      `SELECT COALESCE(CAST(YEAR(completion_date) AS CHAR), 'Undated') AS year,
+              COUNT(*) AS count
+       FROM degrees
+       GROUP BY year
+       ORDER BY MIN(completion_date) ASC`
     );
 
     res.json({
