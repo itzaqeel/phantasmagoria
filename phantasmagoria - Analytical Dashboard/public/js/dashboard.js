@@ -54,9 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Fetch real data immediately
     await refreshDashboardData();
     await renderProfileData();
-
-    // Export Handlers
-    setupExportHandlers();
 });
 
 // ── Profile Action Handlers ──────────────────────────────────────────────────
@@ -724,51 +721,7 @@ function renderEngagementChart(data) {
     });
 }
 
-// --- Export Functionality ---
 
-function setupExportHandlers() {
-    document.getElementById('btn-export-csv')?.addEventListener('click', () => exportToCSV());
-    document.getElementById('btn-export-pdf')?.addEventListener('click', () => exportToPDF());
-    document.getElementById('btn-apply-filter')?.addEventListener('click', () => loadAlumniData());
-    document.getElementById('btn-clear-filter')?.addEventListener('click', () => {
-        document.getElementById('filter-programme').value = '';
-        document.getElementById('filter-year').value = '';
-        loadAlumniData();
-    });
-}
-
-function exportToCSV() {
-    const data = getMockData(); // Use current data in real scenario
-    let csv = 'Metric,Value\n';
-    csv += `Total Alumni,${data.totalAlumni}\n`;
-    csv += `Active Bids,${data.activeBids}\n`;
-    csv += `Total Revenue,${data.totalRevenue}\n`;
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Phantasmagoria_Report_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-}
-
-function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.text("Phantasmagoria University Intelligence Report", 20, 20);
-    
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
-    
-    const data = getMockData();
-    doc.text(`Total Alumni: ${data.totalAlumni}`, 20, 45);
-    doc.text(`Active Bids: ${data.activeBids}`, 20, 55);
-    doc.text(`Total Revenue: GBP ${data.totalRevenue}`, 20, 65);
-    
-    doc.save("Phantasmagoria_Report.pdf");
-}
 
 // --- Alumni Directory ---
 
