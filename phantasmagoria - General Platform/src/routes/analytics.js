@@ -12,6 +12,7 @@ router.get('/top-job-titles',         verifyApiToken, requirePermission('read:an
 router.get('/top-employers',          verifyApiToken, requirePermission('read:analytics'), analyticsController.topEmployers);
 router.get('/geographic',             verifyApiToken, requirePermission('read:analytics'), analyticsController.geographic);
 router.get('/alumni',                 verifyApiToken, requirePermission('read:alumni'),    analyticsController.alumniList);
+router.get('/alumni-filter-options',  verifyApiToken, requirePermission('read:alumni'),    analyticsController.filterOptions);
 router.get('/alumni/:id',             verifyApiToken, requirePermission('read:alumni'),    analyticsController.alumniProfile);
 
 module.exports = router;

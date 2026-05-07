@@ -169,6 +169,63 @@
         <!-- Alumni Directory View -->
         <div id="view-alumni" class="dashboard-view hidden">
 
+            <!-- Premium Filter Panel -->
+            <div class="filter-panel">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05));border:1px solid rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;">⚡</div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.95rem;">Smart Filters</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Refine the alumni directory by programme, year, or industry</div>
+                        </div>
+                        <span id="filter-count-badge" style="display:none;background:var(--accent);color:#020617;border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;margin-left:0.25rem;"></span>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button class="btn btn-secondary btn-sm" id="btn-clear-filter">✕ Clear All</button>
+                        <button class="btn btn-primary btn-sm" id="btn-apply-filter">Apply Filters</button>
+                    </div>
+                </div>
+
+                <!-- Three Filter Columns -->
+                <div class="filter-grid">
+                    <div class="filter-field">
+                        <label class="filter-label">
+                            <span class="filter-label-icon">🎓</span>
+                            Programme / Degree
+                        </label>
+                        <select id="filter-programme" class="filter-select">
+                            <option value="">All Programmes</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label">
+                            <span class="filter-label-icon">📅</span>
+                            Graduation Year
+                        </label>
+                        <select id="filter-grad-year" class="filter-select">
+                            <option value="">All Years</option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label">
+                            <span class="filter-label-icon">🏢</span>
+                            Industry Sector
+                        </label>
+                        <select id="filter-industry" class="filter-select">
+                            <option value="">All Sectors</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active Filter Chips -->
+                <div id="active-filters-row" style="display:none; margin-top:1.1rem; padding-top:1rem; border-top:1px solid var(--border);">
+                    <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                        <span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Active:</span>
+                        <div id="filter-chips" style="display:flex;gap:0.4rem;flex-wrap:wrap;"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Stats -->
             <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1.5rem;">
                 <div class="card stat-card">
@@ -191,10 +248,13 @@
             <!-- Directory Table -->
             <div class="card">
                 <div class="chart-title" style="margin-bottom: 1.25rem; align-items: center;">
-                    <span>Alumni Directory</span>
+                    <div>
+                        <span>Alumni Directory</span>
+                        <span id="alumni-result-label" style="font-size:0.78rem;color:var(--text-muted);font-weight:400;margin-left:0.75rem;"></span>
+                    </div>
                     <input type="text" id="alumni-search" class="form-input"
                         placeholder="🔍  Search by name or email..."
-                        style="max-width: 280px; font-size: 0.85rem; padding: 0.45rem 0.85rem;">
+                        style="max-width: 260px;">
                 </div>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
@@ -215,6 +275,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- Alumni Profile Modal -->
         <div id="alumni-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">

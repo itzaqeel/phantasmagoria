@@ -200,19 +200,61 @@ async function overview(req, res) {
 
 async function alumniList(req, res) {
   try {
+    const { programme, gradYear, industry } = req.query;
+    const conditions = ['u.role = "alumni"'];
+    const params = [];
+
+    if (programme) {
+      conditions.push('p.id IN (SELECT profile_id FROM degrees WHERE title LIKE ?)');
+      params.push(`%${programme}%`);
+    }
+    if (gradYear) {
+      conditions.push('p.id IN (SELECT profile_id FROM degrees WHERE YEAR(completion_date) = ?)');
+      params.push(parseInt(gradYear));
+    }
+    if (industry) {
+      conditions.push('p.id IN (SELECT profile_id FROM employment WHERE role LIKE ?)');
+      params.push(`%${industry}%`);
+    }
+
     const [rows] = await pool.query(`
-      SELECT
-        u.id, u.email, u.role, u.is_verified, u.created_at,
-        p.first_name, p.last_name, p.biography, p.linkedin_url,
-        p.profile_image, p.is_featured_today
+      SELECT u.id, u.email, u.role, u.is_verified, u.created_at,
+             p.first_name, p.last_name, p.biography, p.linkedin_url,
+             p.profile_image, p.is_featured_today
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
-      WHERE u.role = 'alumni'
+      WHERE ${conditions.join(' AND ')}
       ORDER BY u.created_at DESC
-    `);
+    `, params);
+
     res.json({ success: true, data: rows });
   } catch (err) {
     console.error('alumniList error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+}
+
+async function filterOptions(req, res) {
+  try {
+    const [programmes] = await pool.query(
+      `SELECT DISTINCT title FROM degrees WHERE title IS NOT NULL AND title != '' ORDER BY title`
+    );
+    const [years] = await pool.query(
+      `SELECT DISTINCT YEAR(completion_date) AS year FROM degrees WHERE completion_date IS NOT NULL ORDER BY year DESC`
+    );
+    const [industries] = await pool.query(
+      `SELECT DISTINCT role FROM employment WHERE role IS NOT NULL AND role != '' ORDER BY role`
+    );
+    res.json({
+      success: true,
+      data: {
+        programmes: programmes.map(r => r.title),
+        years: years.map(r => r.year).filter(Boolean),
+        industries: industries.map(r => r.role)
+      }
+    });
+  } catch (err) {
+    console.error('filterOptions error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 }
@@ -255,4 +297,4 @@ async function alumniProfile(req, res) {
   }
 }
 
-module.exports = { overview, skillsGap, employmentByIndustry, topJobTitles, topEmployers, geographic, alumniList, alumniProfile };
+module.exports = { overview, skillsGap, employmentByIndustry, topJobTitles, topEmployers, geographic, alumniList, alumniProfile, filterOptions };

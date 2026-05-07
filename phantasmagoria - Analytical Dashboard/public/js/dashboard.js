@@ -35,7 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderProfileData();
             }
             if (view === 'alumni') {
-                loadAlumniList();
+                loadFilterOptions().then(() => setupAlumniFilterHandlers());
+                loadAlumniList({});
             }
         });
     });
@@ -320,13 +321,42 @@ function exportToPDF() {
 
 // --- Alumni Directory ---
 
-async function loadAlumniList() {
-    const tbody = document.getElementById('alumni-list-body');
+let _filterOptionsLoaded = false;
+
+async function loadFilterOptions() {
+    if (_filterOptionsLoaded) return;
+    const res = await API.get('/analytics/alumni-filter-options');
+    if (!res.ok) return;
+    const opts = res.data; // { programmes, years, industries }
+
+    const populate = (selectId, values) => {
+        const sel = document.getElementById(selectId);
+        if (!sel || !values) return;
+        values.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            sel.appendChild(opt);
+        });
+    };
+    populate('filter-programme', opts.programmes);
+    populate('filter-grad-year', opts.years);
+    populate('filter-industry',  opts.industries);
+    _filterOptionsLoaded = true;
+}
+
+async function loadAlumniList(filters = {}) {
+    const tbody    = document.getElementById('alumni-list-body');
+    const resultLbl = document.getElementById('alumni-result-label');
     if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">⏳ Loading alumni directory...</td></tr>';
 
-    const res = await API.get('/analytics/alumni');
+    const params = new URLSearchParams();
+    if (filters.programme) params.set('programme', filters.programme);
+    if (filters.gradYear)   params.set('gradYear',  filters.gradYear);
+    if (filters.industry)   params.set('industry',  filters.industry);
+    const qs = params.toString() ? `?${params.toString()}` : '';
 
-    // Proxy unwraps {success, data} → raw array
+    const res   = await API.get(`/analytics/alumni${qs}`);
     const alumni = Array.isArray(res.data) ? res.data : (res.data?.data || []);
 
     if (!res.ok) {
@@ -334,25 +364,27 @@ async function loadAlumniList() {
         return;
     }
 
-    // Update stat cards
-    const totalEl = document.getElementById('alumni-total-count');
+    // Stats
+    const totalEl    = document.getElementById('alumni-total-count');
     const verifiedEl = document.getElementById('alumni-verified-count');
-    const profileEl = document.getElementById('alumni-profile-count');
-    if (totalEl) totalEl.textContent = alumni.length;
+    const profileEl  = document.getElementById('alumni-profile-count');
+    if (totalEl)    totalEl.textContent    = alumni.length;
     if (verifiedEl) verifiedEl.textContent = alumni.filter(a => a.is_verified).length;
-    if (profileEl) profileEl.textContent = alumni.filter(a => a.biography).length;
+    if (profileEl)  profileEl.textContent  = alumni.filter(a => a.biography).length;
+    if (resultLbl)  resultLbl.textContent  = alumni.length === 0 ? 'No results' : `${alumni.length} result${alumni.length !== 1 ? 's' : ''}`;
 
     if (alumni.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">No alumni registered yet.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">No alumni match the selected filters.</td></tr>';
         return;
     }
 
     window._alumniData = alumni;
     renderAlumniTable(alumni);
 
-    // Live search
+    // Live name/email search (client-side after server filters applied)
     const searchEl = document.getElementById('alumni-search');
     if (searchEl) {
+        searchEl.value = '';
         searchEl.oninput = (e) => {
             const q = e.target.value.toLowerCase();
             const filtered = window._alumniData.filter(a => {
@@ -364,7 +396,65 @@ async function loadAlumniList() {
     }
 }
 
+function getActiveFilters() {
+    return {
+        programme: document.getElementById('filter-programme')?.value  || '',
+        gradYear:  document.getElementById('filter-grad-year')?.value  || '',
+        industry:  document.getElementById('filter-industry')?.value   || ''
+    };
+}
+
+function updateFilterChips(filters) {
+    const chips      = document.getElementById('filter-chips');
+    const chipsRow   = document.getElementById('active-filters-row');
+    const badge      = document.getElementById('filter-count-badge');
+    if (!chips) return;
+
+    const active = [
+        filters.programme ? { label: `🎓 ${filters.programme}`, key: 'filter-programme' } : null,
+        filters.gradYear  ? { label: `📅 ${filters.gradYear}`,  key: 'filter-grad-year' } : null,
+        filters.industry  ? { label: `🏢 ${filters.industry}`,  key: 'filter-industry'  } : null,
+    ].filter(Boolean);
+
+    const count = active.length;
+    chipsRow.style.display = count ? 'block' : 'none';
+    badge.style.display    = count ? 'inline' : 'none';
+    badge.textContent      = count > 0 ? `${count} active` : '';
+
+    chips.innerHTML = active.map(f => `
+        <span class="filter-chip">
+            ${f.label}
+            <button class="filter-chip-remove" onclick="removeFilter('${f.key}')" title="Remove">×</button>
+        </span>`).join('');
+}
+
+function removeFilter(selectId) {
+    const el = document.getElementById(selectId);
+    if (el) el.value = '';
+    const filters = getActiveFilters();
+    updateFilterChips(filters);
+    loadAlumniList(filters);
+}
+
+function setupAlumniFilterHandlers() {
+    document.getElementById('btn-apply-filter')?.addEventListener('click', () => {
+        const filters = getActiveFilters();
+        updateFilterChips(filters);
+        loadAlumniList(filters);
+    });
+    document.getElementById('btn-clear-filter')?.addEventListener('click', () => {
+        ['filter-programme', 'filter-grad-year', 'filter-industry'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        updateFilterChips({});
+        loadAlumniList({});
+    });
+}
+
+
 function renderAlumniTable(alumni) {
+
     const tbody = document.getElementById('alumni-list-body');
     if (!tbody) return;
 
