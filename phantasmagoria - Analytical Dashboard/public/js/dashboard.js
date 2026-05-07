@@ -1078,6 +1078,36 @@ async function renderProfileData() {
     // Set Avatar Initial
     const avatar = document.getElementById('profile-avatar-large');
     if (avatar) avatar.textContent = (user.first_name ? user.first_name[0] : user.email[0]).toUpperCase();
+
+    // Handle Verification Status UI
+    const isVerified = user.is_verified === 1 || user.is_verified === true;
+    const resendBtn = document.getElementById('btn-resend-verify');
+    const verifyStatusText = document.getElementById('verify-status-text');
+    const verifyBadge = document.getElementById('verify-badge');
+
+    if (isVerified) {
+        if (resendBtn) resendBtn.style.display = 'none';
+        if (verifyStatusText) {
+            verifyStatusText.textContent = '✓ Verified';
+            verifyStatusText.style.color = 'var(--success)';
+        }
+        if (verifyBadge) {
+            verifyBadge.textContent = 'Active';
+            verifyBadge.style.background = 'rgba(16,185,129,0.12)';
+            verifyBadge.style.color = 'var(--success)';
+        }
+    } else {
+        if (resendBtn) resendBtn.style.display = 'block';
+        if (verifyStatusText) {
+            verifyStatusText.textContent = '⚠ Unverified';
+            verifyStatusText.style.color = 'var(--warning)';
+        }
+        if (verifyBadge) {
+            verifyBadge.textContent = 'Pending';
+            verifyBadge.style.background = 'rgba(251,191,36,0.12)';
+            verifyBadge.style.color = 'var(--warning)';
+        }
+    }
 }
 
 function getMockData() {
