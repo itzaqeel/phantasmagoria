@@ -47,8 +47,12 @@ async function dispatchEmail(to, subject, body) {
 // SEND VERIFICATION EMAIL
 // Called after alumni registers — they must click the link to verify
 // ─────────────────────────────────────────────
-async function sendVerificationEmail(toEmail, token) {
-  const verifyUrl = `${process.env.FRONTEND_URL}/api/auth/verify-email?token=${token}`;
+async function sendVerificationEmail(toEmail, token, clientUrl = null) {
+  const baseUrl = process.env.FRONTEND_URL;
+  let verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
+  if (clientUrl && clientUrl !== baseUrl) {
+    verifyUrl += `&redirect=${encodeURIComponent(clientUrl)}`;
+  }
 
   await dispatchEmail(
     toEmail,
@@ -60,8 +64,12 @@ async function sendVerificationEmail(toEmail, token) {
 // ─────────────────────────────────────────────
 // SEND PASSWORD RESET EMAIL
 // ─────────────────────────────────────────────
-async function sendPasswordResetEmail(toEmail, token) {
-  const resetUrl = `${process.env.FRONTEND_URL}/api/auth/reset-password?token=${token}`;
+async function sendPasswordResetEmail(toEmail, token, clientUrl = null) {
+  const baseUrl = process.env.FRONTEND_URL;
+  let resetUrl = `${baseUrl}/api/auth/reset-password?token=${token}`;
+  if (clientUrl && clientUrl !== baseUrl) {
+    resetUrl += `&redirect=${encodeURIComponent(clientUrl)}`;
+  }
 
   await dispatchEmail(
     toEmail,

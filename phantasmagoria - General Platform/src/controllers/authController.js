@@ -43,8 +43,11 @@ async function register(req, res) {
       [email, password_hash, tokenHash, tokenExpiry]
     );
 
-    // Send verification email with raw token (user clicks link containing raw token)
-    await emailService.sendVerificationEmail(email, rawToken);
+    // Determine origin (CW1 vs CW2)
+    const clientUrl = req.get('origin') || process.env.FRONTEND_URL;
+
+    // Send verification email with raw token
+    await emailService.sendVerificationEmail(email, rawToken, clientUrl);
 
     res.status(201).json({
       success: true,
@@ -98,6 +101,10 @@ async function verifyEmail(req, res) {
     await pool.query('INSERT IGNORE INTO profiles (user_id) VALUES (?)', [user.id]).catch(() => null);
 
     // Redirect to the login page with a success message
+    const { redirect } = req.query;
+    if (redirect) {
+      return res.redirect(`${redirect}/auth.html?verified=true`);
+    }
     res.redirect('/index.html?verified=true');
 
   } catch (err) {
@@ -205,7 +212,8 @@ async function forgotPassword(req, res) {
       [tokenHash, tokenExpiry, rows[0].id]
     );
 
-    await emailService.sendPasswordResetEmail(email, rawToken);
+    const clientUrl = req.get('origin') || process.env.FRONTEND_URL;
+    await emailService.sendPasswordResetEmail(email, rawToken, clientUrl);
 
     res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
 
@@ -263,4 +271,38 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { register, verifyEmail, login, logout, forgotPassword, resetPassword };
+// ─────────────────────────────────────────────
+// RESEND VERIFICATION
+// POST /api/auth/resend-verification
+// ─────────────────────────────────────────────
+async function resendVerification(req, res) {
+  const { email } = req.body;
+  try {
+    const [rows] = await pool.query('SELECT id, is_verified FROM users WHERE email = ?', [email]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    if (rows[0].is_verified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified.' });
+    }
+
+    const rawToken = generateToken();
+    const tokenHash = hashToken(rawToken);
+    const tokenExpiry = generateExpiry(1);
+
+    await pool.query(
+      'UPDATE users SET verify_token = ?, verify_expires = ? WHERE id = ?',
+      [tokenHash, tokenExpiry, rows[0].id]
+    );
+
+    const clientUrl = req.get('origin') || process.env.FRONTEND_URL;
+    await emailService.sendVerificationEmail(email, rawToken, clientUrl);
+
+    res.json({ success: true, message: 'Verification email resent.' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+}
+
+module.exports = { register, verifyEmail, login, logout, forgotPassword, resetPassword, resendVerification };
