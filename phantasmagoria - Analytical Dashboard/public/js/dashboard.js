@@ -180,6 +180,8 @@ async function refreshDashboardData() {
         updateStats(statsRes.data);
         renderOverviewCharts(statsRes.data);
     }
+    // Fetch and render Alumni of the Day spotlight
+    loadAlumniOfTheDay();
 }
 
 function updateStats(data) {
@@ -188,6 +190,60 @@ function updateStats(data) {
     s('stat-total-certs',    data.totalCertifications ?? '—');
     s('stat-total-degrees',  data.totalDegrees  ?? '—');
 }
+
+async function loadAlumniOfTheDay() {
+    const card = document.getElementById('aotd-card');
+    if (!card) return;
+
+    const res = await API.get('/public/featured');
+    if (!res.ok || !res.data?.featured) {
+        card.style.display = 'none';
+        return;
+    }
+
+    renderAlumniOfTheDay(res.data.featured);
+}
+
+function renderAlumniOfTheDay(f) {
+    const card = document.getElementById('aotd-card');
+    if (!card) return;
+
+    const fullName   = `${f.first_name || ''} ${f.last_name || ''}`.trim();
+    const initials   = [f.first_name, f.last_name].filter(Boolean).map(n => n[0].toUpperCase()).join('');
+    const currentJob = f.employment?.[0];
+    const roleLabel  = currentJob ? `${currentJob.role} · ${currentJob.company}` : f.email;
+    const bio        = f.biography || 'No biography available.';
+    const degree     = f.degrees?.[0]?.title || null;
+    const cert       = f.certifications?.[0]?.title || null;
+
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setText('aotd-name',   fullName   || '—');
+    setText('aotd-role',   roleLabel  || '—');
+    setText('aotd-bio',    bio);
+    setText('aotd-avatar', initials   || '—');
+
+    // Render meta pills (degree + top cert)
+    const meta = document.getElementById('aotd-meta');
+    if (meta) {
+        meta.innerHTML = '';
+        const pill = (text, color) => {
+            const span = document.createElement('span');
+            span.textContent = text;
+            span.style.cssText = `
+                display:inline-block; padding:0.3rem 0.75rem;
+                border-radius:20px; font-size:0.72rem; font-weight:600;
+                background:rgba(${color},0.12); color:rgba(${color},1);
+                border:1px solid rgba(${color},0.25); white-space:nowrap;
+            `;
+            return span;
+        };
+        if (degree) meta.appendChild(pill(degree,  '251,191,36'));
+        if (cert)   meta.appendChild(pill(cert,    '167,139,250'));
+    }
+
+    card.style.display = 'block';
+}
+
 
 // Called on load and when Analytics nav is clicked
 function renderAllCharts(data) {
