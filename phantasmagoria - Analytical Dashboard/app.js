@@ -115,16 +115,25 @@ app.use('/api', async (req, res) => {
     try {
         const endpoint = req.path;
         const url = `${process.env.CW1_API_URL}${endpoint}`;
-        
+
+        // For forgot-password, we must tell CW1 our own origin so it
+        // constructs the reset URL pointing back to THIS dashboard's
+        // reset-password page rather than CW1's own page.
+        const forwardHeaders = {
+            ...req.headers,
+            host: new URL(process.env.CW1_API_URL).host
+        };
+        if (endpoint === '/auth/forgot-password') {
+            const dashboardUrl = process.env.DASHBOARD_URL || `http://localhost:${process.env.PORT || 4000}`;
+            forwardHeaders['origin'] = dashboardUrl;
+        }
+
         const response = await axios({
             method: req.method,
             url: url,
             data: req.body,
             params: req.query,
-            headers: {
-                ...req.headers,
-                host: new URL(process.env.CW1_API_URL).host
-            },
+            headers: forwardHeaders,
             validateStatus: () => true
         });
 

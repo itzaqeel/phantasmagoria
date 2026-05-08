@@ -208,7 +208,7 @@
                             <input type="password" id="login-password" placeholder="••••••••" required>
                         </div>
                         <div class="form-options">
-                            <a href="#" class="forgot-link">Forgot Password?</a>
+                            <a href="#" class="forgot-link" id="forgot-password-link">Forgot Password?</a>
                         </div>
                         <button type="submit" class="btn-auth">Sign In</button>
                     </form>
@@ -236,6 +236,24 @@
                         </div>
                         <button type="submit" class="btn-auth">Register</button>
                     </form>
+                </div>
+
+                <!-- Forgot Password Form -->
+                <div id="forgot-form-container" class="hidden">
+                    <div id="forgot-error" class="error-message"></div>
+                    <div id="forgot-success" class="success-message"></div>
+                    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem;">Reset Password</h3>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.5rem;">Enter your university email and we'll send you a reset link.</p>
+                    <form id="forgot-form">
+                        <div class="form-group">
+                            <label for="forgot-email">University Email</label>
+                            <input type="email" id="forgot-email" placeholder="e.g. john@westminster.ac.uk" required>
+                        </div>
+                        <button type="submit" class="btn-auth">Send Reset Link</button>
+                    </form>
+                    <div style="margin-top:1.25rem;text-align:center;">
+                        <a href="#" class="forgot-link" id="back-to-login-link" style="font-size:0.85rem;">← Back to Login</a>
+                    </div>
                 </div>
             </div>
         </div>
