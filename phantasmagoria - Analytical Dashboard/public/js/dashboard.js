@@ -877,6 +877,8 @@ function renderAlumniTable(alumni) {
         return;
     }
 
+    const hasAlumniOfDayPerm = window._systemPermissions && window._systemPermissions.includes('read:alumni_of_day');
+
     tbody.innerHTML = alumni.map(a => {
         const firstName = a.first_name || '';
         const lastName  = a.last_name  || '';
@@ -887,14 +889,30 @@ function renderAlumniTable(alumni) {
             ? '<span class="status-badge status-success">✓ Verified</span>'
             : '<span class="status-badge status-warning">⚠ Unverified</span>';
 
+        const isAlumniOfDay = hasAlumniOfDayPerm && (a.is_featured_today === 1 || a.is_featured_today === true);
+        
+        const rowStyle = isAlumniOfDay 
+            ? 'border-bottom:1px solid rgba(251,191,36,0.3); background:rgba(251,191,36,0.05); transition:background 0.15s;'
+            : 'border-bottom:1px solid var(--border); transition:background 0.15s;';
+        
+        const rowHoverStyle = isAlumniOfDay ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.025)';
+        const rowOutStyle = isAlumniOfDay ? 'rgba(251,191,36,0.05)' : 'transparent';
+        
+        const displayBadge = isAlumniOfDay 
+            ? '<div style="font-size:0.65rem; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;">🌟 Alumni of the Day</div>'
+            : '';
+
         return `
-            <tr style="border-bottom:1px solid var(--border); transition:background 0.15s;"
-                onmouseover="this.style.background='rgba(255,255,255,0.025)'"
-                onmouseout="this.style.background='transparent'">
+            <tr style="${rowStyle}"
+                onmouseover="this.style.background='${rowHoverStyle}'"
+                onmouseout="this.style.background='${rowOutStyle}'">
                 <td style="padding:0.9rem 1rem;">
                     <div style="display:flex;align-items:center;gap:0.75rem;">
                         <div style="width:38px;height:38px;border-radius:50%;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--accent);flex-shrink:0;">${initial}</div>
-                        <div style="font-weight:600;">${name}</div>
+                        <div>
+                            <div style="font-weight:600;">${name}</div>
+                            ${displayBadge}
+                        </div>
                     </div>
                 </td>
                 <td style="padding:0.9rem 1rem;color:var(--text-secondary);font-size:0.88rem;">${a.email}</td>
@@ -904,14 +922,21 @@ function renderAlumniTable(alumni) {
                 <td style="padding:0.9rem 1rem;text-align:center;">${verified}</td>
                 <td style="padding:0.9rem 1rem;text-align:center;color:var(--text-secondary);font-size:0.85rem;">${joined}</td>
                 <td style="padding:0.9rem 1rem;text-align:center;">
-                    <button onclick="viewAlumniProfile(${a.id})"
-                        class="btn btn-secondary btn-sm"
+                    <button class="btn btn-secondary btn-sm view-profile-btn" data-alumni-id="${a.id}"
                         style="font-size:0.78rem;padding:0.3rem 0.8rem;">
                         View Profile
                     </button>
                 </td>
             </tr>`;
     }).join('');
+
+    // Safely attach event listeners to newly generated buttons
+    document.querySelectorAll('.view-profile-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const alumniId = e.currentTarget.getAttribute('data-alumni-id');
+            viewAlumniProfile(alumniId);
+        });
+    });
 }
 
 async function viewAlumniProfile(id) {
@@ -1073,6 +1098,8 @@ async function renderProfileData() {
                 let perms = res.data.permissions;
                 if (typeof perms === 'string') perms = JSON.parse(perms);
                 
+                window._systemPermissions = perms; // Store globally for other components
+
                 if (Array.isArray(perms) && perms.length > 0) {
                     permContainer.innerHTML = `
                         <div style="margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
