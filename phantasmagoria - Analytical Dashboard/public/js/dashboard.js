@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Export Handlers
     setupExportHandlers();
+    addDownloadIconsToCharts();
 
     // Profile Action Handlers (attached securely via JS)
     document.getElementById('btn-reset-password')?.addEventListener('click', handleResetPassword);
@@ -1068,86 +1069,257 @@ async function renderProfileData() {
 
 function setupExportHandlers() {
     document.getElementById('btn-export-csv')?.addEventListener('click', () => exportToCSV());
-    document.getElementById('btn-export-pdf')?.addEventListener('click', () => exportToPDF());
-    document.getElementById('btn-apply-filter')?.addEventListener('click', () => loadAlumniData());
+    document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
+        document.getElementById('report-modal').style.display = 'flex';
+    });
+    
+    document.getElementById('btn-close-report')?.addEventListener('click', () => {
+        document.getElementById('report-modal').style.display = 'none';
+    });
+
+    document.getElementById('btn-generate-pdf')?.addEventListener('click', () => {
+        document.getElementById('report-modal').style.display = 'none';
+        exportToPDF();
+    });
+
+    document.getElementById('btn-apply-filter')?.addEventListener('click', () => {
+        const filters = getActiveFilters();
+        updateFilterChips(filters);
+        loadAlumniList(filters);
+    });
     document.getElementById('btn-clear-filter')?.addEventListener('click', () => {
         document.getElementById('filter-programme').value = '';
-        document.getElementById('filter-year').value = '';
-        loadAlumniData();
+        document.getElementById('filter-grad-year').value = '';
+        document.getElementById('filter-industry').value = '';
+        updateFilterChips({});
+        loadAlumniList({});
+    });
+
+    setupPresetHandlers();
+}
+
+function setupPresetHandlers() {
+    const select = document.getElementById('preset-select');
+    const saveBtn = document.getElementById('btn-save-preset');
+    if (!select || !saveBtn) return;
+
+    const loadPresetsToDropdown = () => {
+        const presets = JSON.parse(localStorage.getItem('alumni_filters') || '{}');
+        select.innerHTML = '<option value="">Saved Presets...</option>';
+        Object.keys(presets).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+        });
+    };
+    loadPresetsToDropdown();
+
+    saveBtn.addEventListener('click', () => {
+        const name = prompt('Enter a name for this filter preset:');
+        if (!name) return;
+        const filters = getActiveFilters();
+        const presets = JSON.parse(localStorage.getItem('alumni_filters') || '{}');
+        presets[name] = filters;
+        localStorage.setItem('alumni_filters', JSON.stringify(presets));
+        loadPresetsToDropdown();
+        select.value = name;
+        showProfileToast(`✓ Preset "${name}" saved!`, 'success');
+    });
+
+    select.addEventListener('change', () => {
+        if (!select.value) return;
+        const presets = JSON.parse(localStorage.getItem('alumni_filters') || '{}');
+        const filters = presets[select.value];
+        if (filters) {
+            document.getElementById('filter-programme').value = filters.programme || '';
+            document.getElementById('filter-grad-year').value = filters.gradYear || '';
+            document.getElementById('filter-industry').value = filters.industry || '';
+            updateFilterChips(filters);
+            loadAlumniList(filters);
+            showProfileToast(`✓ Loaded preset "${select.value}"`, 'success');
+        }
     });
 }
 
 function exportToCSV() {
-    const data = getMockData(); // Use current data in real scenario
-    let csv = 'Metric,Value\n';
-    csv += `Total Alumni,${data.totalAlumni}\n`;
-    csv += `Active Bids,${data.activeBids}\n`;
-    csv += `Total Revenue,${data.totalRevenue}\n`;
-    
+    const activeView = document.querySelector('.nav-link.active')?.getAttribute('data-view');
+    let csv = '';
+    let filename = 'export.csv';
+
+    if (activeView === 'alumni') {
+        const alumni = window._alumniData || [];
+        csv = 'Name,Email,Programme,Graduation Year,Industry,Job Title\n';
+        alumni.forEach(a => {
+            const row = [
+                `${a.first_name || ''} ${a.last_name || ''}`.trim(),
+                a.email || '',
+                a.degree_name || '',
+                a.graduation_year || '',
+                a.industry_sector || '',
+                a.job_title || ''
+            ].map(v => `"${v.toString().replace(/"/g, '""')}"`);
+            csv += row.join(',') + '\n';
+        });
+        filename = 'Phantasmagoria_Alumni_Directory.csv';
+    } else {
+        const data = window._lastOverviewData || {};
+        csv = 'Metric,Value\n';
+        csv += `Total Alumni,${data.totalAlumni || 0}\n`;
+        csv += `Total Certifications,${data.totalCertifications || 0}\n`;
+        csv += `Total Degrees,${data.totalDegrees || 0}\n`;
+        filename = 'Phantasmagoria_Analytics_Summary.csv';
+    }
+
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Phantasmagoria_Analytics_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = filename;
     a.click();
 }
 
-function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+async function exportToPDF() {
+    // Collect the user's choices from the modal
+    const includeOverview = document.getElementById('rep-overview')?.checked;
+    const includeIndustry = document.getElementById('rep-industry')?.checked;
+    const includeSkills   = document.getElementById('rep-skills')?.checked;
+    const includeSalary   = document.getElementById('rep-salary')?.checked;
+
+    // Create a temporary container for the report
+    const reportDiv = document.createElement('div');
+    reportDiv.style.cssText = 'padding: 40px; background: #0f172a; color: #f8fafc; font-family: Inter, sans-serif;';
     
-    doc.setFontSize(20);
-    doc.text("Phantasmagoria University Analytics Report", 20, 20);
-    
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
-    
-    const data = getMockData();
-    doc.text(`Total Alumni: ${data.totalAlumni}`, 20, 45);
-    doc.text(`Active Bids: ${data.activeBids}`, 20, 55);
-    doc.text(`Total Revenue: GBP ${data.totalRevenue}`, 20, 65);
-    
-    doc.save("Phantasmagoria_Analytics.pdf");
+    // Header
+    const header = document.createElement('div');
+    header.innerHTML = `
+        <h1 style="color: #fbbf24; margin-bottom: 5px;">Phantasmagoria University</h1>
+        <h2 style="font-size: 1.5rem; margin-top: 0;">Custom Analytics Report</h2>
+        <p style="color: #94a3b8;">Generated on: ${new Date().toLocaleString()}</p>
+        <hr style="border-color: #334155; margin-bottom: 30px;">
+    `;
+    reportDiv.appendChild(header);
+
+    // Helper to clone a chart canvas as an image
+    const appendChart = (title, canvasId) => {
+        const sourceCanvas = document.getElementById(canvasId);
+        if (!sourceCanvas) return;
+        
+        const section = document.createElement('div');
+        section.style.marginBottom = '40px';
+        section.innerHTML = `<h3 style="margin-bottom: 15px; border-left: 4px solid #06b6d4; padding-left: 10px;">${title}</h3>`;
+        
+        // We must draw it with a solid background because Chart.js defaults to transparent
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = sourceCanvas.width;
+        tmpCanvas.height = sourceCanvas.height;
+        const ctx = tmpCanvas.getContext('2d');
+        ctx.fillStyle = '#1e293b'; // card background
+        ctx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+        ctx.drawImage(sourceCanvas, 0, 0);
+
+        const img = document.createElement('img');
+        img.src = tmpCanvas.toDataURL('image/png');
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '8px';
+        img.style.border = '1px solid #334155';
+        
+        section.appendChild(img);
+        reportDiv.appendChild(section);
+    };
+
+    if (includeOverview) {
+        const stats = window._lastOverviewData || {};
+        const statDiv = document.createElement('div');
+        statDiv.style.marginBottom = '40px';
+        statDiv.innerHTML = `
+            <h3 style="margin-bottom: 15px; border-left: 4px solid #06b6d4; padding-left: 10px;">Overview Statistics</h3>
+            <ul style="list-style:none; padding:0; display:flex; gap:20px;">
+                <li style="background:#1e293b; padding:15px 25px; border-radius:8px; flex:1;">
+                    <div style="font-size:0.9rem; color:#94a3b8;">Total Alumni</div>
+                    <div style="font-size:1.8rem; font-weight:bold;">${stats.totalAlumni || 0}</div>
+                </li>
+                <li style="background:#1e293b; padding:15px 25px; border-radius:8px; flex:1;">
+                    <div style="font-size:0.9rem; color:#94a3b8;">Total Certifications</div>
+                    <div style="font-size:1.8rem; font-weight:bold;">${stats.totalCertifications || 0}</div>
+                </li>
+                <li style="background:#1e293b; padding:15px 25px; border-radius:8px; flex:1;">
+                    <div style="font-size:0.9rem; color:#94a3b8;">Total Degrees</div>
+                    <div style="font-size:1.8rem; font-weight:bold;">${stats.totalDegrees || 0}</div>
+                </li>
+            </ul>
+        `;
+        reportDiv.appendChild(statDiv);
+    }
+
+    if (includeIndustry) {
+        appendChart('Employment by Industry Sector', 'aIndustryChart');
+    }
+    if (includeSkills) {
+        appendChart('Skills Gap Analysis', 'aSkillsGapChart');
+    }
+    if (includeSalary) {
+        appendChart('Salary Benchmarks', 'aSalaryChart');
+    }
+
+    // Use html2pdf to generate the PDF from the temporary container
+    if (window.html2pdf) {
+        const opt = {
+            margin:       10,
+            filename:     'Phantasmagoria_Custom_Report.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        showProfileToast('Generating PDF Report...', 'success');
+        html2pdf().set(opt).from(reportDiv).save();
+    } else {
+        showProfileToast('PDF library not loaded.', 'error');
+    }
 }
 
-function getMockData() {
-    return {
-        totalAlumni: 1240,
-        activeBids: 42,
-        totalRevenue: 15600.50,
-        apiHits: 8400,
-        degreeDist: {
-            labels: ['CS', 'Business', 'Eng', 'Arts', 'Other'],
-            values: [450, 300, 250, 150, 90]
-        },
-        biddingTrends: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            values: [12, 19, 15, 25, 32, 28, 45]
-        },
-        geoDist: {
-            labels: ['London', 'Colombo', 'Dubai', 'NY', 'SG'],
-            values: [400, 250, 180, 120, 80]
-        },
-        topBidders: [
-            { name: 'John Doe', scores: [80, 90, 70, 100, 60], color: '#fbbf24' },
-            { name: 'Jane Smith', scores: [60, 70, 90, 80, 100], color: '#d97706' }
-        ],
-        industryGrowth: {
-            labels: ['Tech', 'Finance', 'Health', 'Creative'],
-            values: [156, 84, 42, 38]
-        },
-        skillsGap: {
-            labels: ['Cloud', 'AI/ML', 'Blockchain', 'Cyber', 'DevOps'],
-            curriculum: [20, 10, 5, 15, 10],
-            industry: [85, 70, 40, 65, 80]
-        },
-        salaryBenchmarks: {
-            labels: ['2021', '2022', '2023', '2024'],
-            values: [32000, 35000, 38000, 42000]
-        },
-        engagementTrends: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-            values: [1200, 1500, 1800, 2100]
+// Inject chart download buttons
+function addDownloadIconsToCharts() {
+    document.querySelectorAll('.chart-title').forEach(titleDiv => {
+        const canvas = titleDiv.parentElement.querySelector('canvas');
+        if (!canvas) return;
+
+        let rightSide = titleDiv.querySelector('.chart-title-actions');
+        if (!rightSide) {
+            rightSide = document.createElement('div');
+            rightSide.className = 'chart-title-actions';
+            rightSide.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
+            const badge = titleDiv.querySelector('.status-badge');
+            if (badge) {
+                titleDiv.insertBefore(rightSide, badge);
+                rightSide.appendChild(badge);
+            } else {
+                titleDiv.appendChild(rightSide);
+            }
         }
-    };
+
+        const btn = document.createElement('button');
+        btn.innerHTML = '⬇️';
+        btn.title = 'Download Chart Image';
+        btn.style.cssText = 'background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text); cursor:pointer; padding:2px 6px; font-size:0.8rem; border-radius:4px; transition:0.2s; display:flex; align-items:center;';
+        btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.1)';
+        btn.onmouseout = () => btn.style.background = 'rgba(255,255,255,0.05)';
+        btn.onclick = () => {
+            // Fill background with card-bg color so PNG isn't transparent (dark mode)
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = canvas.width;
+            tmpCanvas.height = canvas.height;
+            const ctx = tmpCanvas.getContext('2d');
+            ctx.fillStyle = '#1c1c1e'; // Match var(--card-bg)
+            ctx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+            ctx.drawImage(canvas, 0, 0);
+
+            const link = document.createElement('a');
+            const name = titleDiv.querySelector('span:first-child')?.textContent.replace(/\s+/g, '_') || 'chart';
+            link.download = `${name}.png`;
+            link.href = tmpCanvas.toDataURL('image/png');
+            link.click();
+        };
+        rightSide.appendChild(btn);
+    });
 }

@@ -12,8 +12,9 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- jsPDF for report generation -->
+    <!-- jsPDF and html2pdf for report generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -215,8 +216,13 @@
                         </div>
                         <span id="filter-count-badge" style="display:none;background:var(--accent);color:#020617;border-radius:20px;padding:0.15rem 0.6rem;font-size:0.7rem;font-weight:700;margin-left:0.25rem;"></span>
                     </div>
-                    <div style="display:flex;gap:0.5rem;">
-                        <button class="btn btn-secondary btn-sm" id="btn-clear-filter">✕ Clear All</button>
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <select id="preset-select" class="filter-select" style="padding:0.25rem 0.5rem; font-size:0.8rem; width:130px; border-color:rgba(255,255,255,0.2);">
+                            <option value="">Saved Presets...</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" id="btn-save-preset">💾 Save</button>
+                        <div style="width:1px; height:20px; background:var(--border); margin:0 0.25rem;"></div>
+                        <button class="btn btn-secondary btn-sm" id="btn-clear-filter">✕ Clear</button>
                         <button class="btn btn-primary btn-sm" id="btn-apply-filter">Apply Filters</button>
                     </div>
                 </div>
@@ -397,6 +403,24 @@
                     </button>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- Report Export Modal -->
+        <div id="report-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:999999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+            <div class="card" style="width:450px; max-width:90%; border:1px solid rgba(255,255,255,0.1);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <h3 style="margin:0;font-size:1.2rem;">Generate Custom Report</h3>
+                    <button id="btn-close-report" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;">✕</button>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">Select the metrics and charts to include in the PDF export.</p>
+                <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;cursor:pointer;"><input type="checkbox" id="rep-overview" checked> Overview Statistics</label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;cursor:pointer;"><input type="checkbox" id="rep-industry" checked> Employment by Industry Sector</label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;cursor:pointer;"><input type="checkbox" id="rep-skills" checked> Skills Gap Analysis</label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;cursor:pointer;"><input type="checkbox" id="rep-salary" checked> Salary Benchmarks</label>
+                </div>
+                <button id="btn-generate-pdf" class="btn btn-primary" style="width:100%;">Generate PDF Report</button>
             </div>
         </div>
 
