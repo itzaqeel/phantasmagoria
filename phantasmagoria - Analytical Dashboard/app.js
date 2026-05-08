@@ -110,7 +110,36 @@ app.use('/api/analytics', async (req, res) => {
     }
 });
 
-// 2. General API Proxy (Pass-through for Auth, Profile, etc.)
+// 2. Public API Proxy (requires API key — /public/featured, /public/alumni)
+app.use('/api/public', async (req, res) => {
+    try {
+        const endpoint = req.path;
+        const rawKey   = process.env.CW1_API_KEY;
+        const apiKey   = rawKey ? rawKey.trim() : null;
+
+        if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+            return res.status(500).json({ success: false, message: 'CW1_API_KEY not configured.' });
+        }
+
+        const response = await axios({
+            method: req.method,
+            url: `${process.env.CW1_API_URL}/public${endpoint}`,
+            params: req.query,
+            data: req.body,
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        res.status(response.status).json(response.data);
+    } catch (err) {
+        console.error('Public Proxy Error:', err.message);
+        res.status(err.response?.status || 500).json({
+            success: false,
+            message: err.response?.data?.message || err.message
+        });
+    }
+});
+
+// 3. General API Proxy (Pass-through for Auth, Profile, etc.)
 app.use('/api', async (req, res) => {
     try {
         const endpoint = req.path;
