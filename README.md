@@ -18,7 +18,7 @@ Located entirely within the `CW1` folder, the Express backend serves as the sour
 - Enforces strict stateless JWT authentication for users and API Token Bearer authentication for external systems (like CW2).
 - Executes complex background tasks via scheduled cron jobs (`bidScheduler.js`).
 
-### 3. Frontend Clients (Vanilla JS / HTML / CSS)
+### 3. Frontend Clients ( JS / HTML / CSS)
 - **General Platform UI:** Served directly by the CW1 Node server, providing the Alumni user experience and Developer Admin portal.
 - **Analytical Dashboard:** A standalone Node/Express server (`app.js` in CW2 folder) that acts primarily as a secure proxy and static file server. It serves the Dashboard UI and securely proxies cross-origin requests to the CW1 API, injecting a hidden `.env` API key to retrieve data without exposing credentials to the browser.
 
