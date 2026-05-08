@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (document.getElementById('perm-alumni').checked)    permissions.push('read:alumni');
       if (document.getElementById('perm-analytics').checked) permissions.push('read:analytics');
       if (document.getElementById('perm-ar').checked)        permissions.push('read:alumni_of_day');
+      if (document.getElementById('perm-donations').checked) permissions.push('read:donations');
 
       const { ok, data } = await API.post('/admin/tokens', {
         token_name: document.getElementById('token-name').value,

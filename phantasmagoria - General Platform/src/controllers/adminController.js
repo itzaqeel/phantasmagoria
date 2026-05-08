@@ -23,7 +23,7 @@ async function generateToken(req, res) {
     const rawToken  = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const allowed    = ['read:alumni', 'read:analytics', 'read:alumni_of_day'];
+    const allowed    = ['read:alumni', 'read:analytics', 'read:alumni_of_day', 'read:donations'];
     const finalPerms = Array.isArray(permissions)
       ? permissions.filter(p => allowed.includes(p))
       : ['read:alumni'];

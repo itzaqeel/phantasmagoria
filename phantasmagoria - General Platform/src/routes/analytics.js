@@ -16,5 +16,13 @@ router.get('/alumni-filter-options',      verifyApiToken, requirePermission('rea
 router.get('/alumni/:id',                 verifyApiToken, requirePermission('read:alumni'),    analyticsController.alumniProfile);
 router.get('/employed-vs-unemployed',     verifyApiToken, requirePermission('read:alumni'),    analyticsController.employedVsUnemployed);
 
+router.get('/system-status', verifyApiToken, (req, res) => {
+    res.json({
+        success: true,
+        token_name: req.apiToken.token_name,
+        permissions: req.apiToken.permissions
+    });
+});
+
 module.exports = router;
 

@@ -1063,6 +1063,35 @@ async function renderProfileData() {
             verifyBadge.style.color = 'var(--warning)';
         }
     }
+
+    // Fetch System Permissions
+    const permContainer = document.getElementById('system-permissions-container');
+    if (permContainer) {
+        try {
+            const res = await API.get('/analytics/system-status');
+            if (res.ok && res.data && res.data.permissions) {
+                let perms = res.data.permissions;
+                if (typeof perms === 'string') perms = JSON.parse(perms);
+                
+                if (Array.isArray(perms) && perms.length > 0) {
+                    permContainer.innerHTML = `
+                        <div style="margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
+                            Active Key: <strong style="color:var(--text-primary);">${res.data.token_name || 'System Key'}</strong>
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                            ${perms.map(p => `<span style="background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.2); border-radius: 20px; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 600;">✓ ${p}</span>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    permContainer.innerHTML = '<div class="empty-state" style="padding:1rem;">No permissions assigned</div>';
+                }
+            } else {
+                permContainer.innerHTML = '<div class="alert alert-error">Failed to load permissions. Check API Key.</div>';
+            }
+        } catch (err) {
+            permContainer.innerHTML = '<div class="alert alert-error">Network error loading permissions</div>';
+        }
+    }
 }
 
 // --- Export Functionality ---
