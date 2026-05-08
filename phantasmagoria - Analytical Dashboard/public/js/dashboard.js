@@ -1183,8 +1183,9 @@ async function exportToPDF() {
     // Collect the user's choices from the modal
     const includeOverview = document.getElementById('rep-overview')?.checked;
     const includeIndustry = document.getElementById('rep-industry')?.checked;
+    const includeJobs     = document.getElementById('rep-jobs')?.checked;
     const includeSkills   = document.getElementById('rep-skills')?.checked;
-    const includeSalary   = document.getElementById('rep-salary')?.checked;
+    const includeGrad     = document.getElementById('rep-grad')?.checked;
 
     // Create a temporary container for the report
     const reportDiv = document.createElement('div');
@@ -1255,11 +1256,14 @@ async function exportToPDF() {
     if (includeIndustry) {
         appendChart('Employment by Industry Sector', 'aIndustryChart');
     }
+    if (includeJobs) {
+        appendChart('Most Common Job Titles', 'aJobTitlesChart');
+    }
     if (includeSkills) {
         appendChart('Skills Gap Analysis', 'aSkillsGapChart');
     }
-    if (includeSalary) {
-        appendChart('Salary Benchmarks', 'aSalaryChart');
+    if (includeGrad) {
+        appendChart('Graduation Trends', 'aGradChart');
     }
 
     // Use html2pdf to generate the PDF from the temporary container
