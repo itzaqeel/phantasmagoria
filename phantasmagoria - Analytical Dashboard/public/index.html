@@ -31,26 +31,22 @@
             <ul class="nav-menu">
                 <li class="nav-item">
                     <a href="#" class="nav-link active" data-view="overview">
-                        <span class="icon">📊</span>
                         <span>Overview</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-view="analytics">
-                        <span class="icon">📈</span>
                         <span>Analytics</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-view="alumni">
-                        <span class="icon">👥</span>
                         <span>Alumni</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-view="profile">
-                        <span class="icon">👤</span>
                         <span>My Profile</span>
                     </a>
                 </li>
@@ -75,8 +71,8 @@
                 <p class="subtitle" style="margin-bottom: 0;">Real-time engagement and distribution metrics for the Alumni Network.</p>
             </div>
             <div id="analytics-actions" class="dashboard-view-actions" style="display:none;gap:0.75rem;">
-                <button class="btn btn-secondary btn-sm" id="btn-export-csv">📥 Export CSV</button>
-                <button class="btn btn-secondary btn-sm" id="btn-export-pdf">📄 Export PDF</button>
+                <button class="btn btn-secondary btn-sm" id="btn-export-csv">Export CSV</button>
+                <button class="btn btn-secondary btn-sm" id="btn-export-pdf">Export PDF</button>
             </div>
         </header>
 
@@ -209,7 +205,6 @@
             <div class="filter-panel">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
                     <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05));border:1px solid rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;">⚡</div>
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;">Filter</div>
                             <div style="font-size:0.75rem;color:var(--text-muted);">Refine the alumni directory by programme, year, or industry</div>
@@ -220,9 +215,9 @@
                         <select id="preset-select" class="filter-select" style="padding:0.25rem 0.5rem; font-size:0.8rem; width:130px; border-color:rgba(255,255,255,0.2);">
                             <option value="">Saved Presets...</option>
                         </select>
-                        <button class="btn btn-secondary btn-sm" id="btn-save-preset">💾 Save</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-save-preset">Save</button>
                         <div style="width:1px; height:20px; background:var(--border); margin:0 0.25rem;"></div>
-                        <button class="btn btn-secondary btn-sm" id="btn-clear-filter">✕ Clear</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-clear-filter">Clear</button>
                         <button class="btn btn-primary btn-sm" id="btn-apply-filter">Apply Filters</button>
                     </div>
                 </div>
@@ -230,28 +225,19 @@
                 <!-- Three Filter Columns -->
                 <div class="filter-grid">
                     <div class="filter-field">
-                        <label class="filter-label">
-                            <span class="filter-label-icon">🎓</span>
-                            Programme / Degree
-                        </label>
+                        <label class="filter-label">Programme / Degree</label>
                         <select id="filter-programme" class="filter-select">
                             <option value="">All Programmes</option>
                         </select>
                     </div>
                     <div class="filter-field">
-                        <label class="filter-label">
-                            <span class="filter-label-icon">📅</span>
-                            Graduation Year
-                        </label>
+                        <label class="filter-label">Graduation Year</label>
                         <select id="filter-grad-year" class="filter-select">
                             <option value="">All Years</option>
                         </select>
                     </div>
                     <div class="filter-field">
-                        <label class="filter-label">
-                            <span class="filter-label-icon">🏢</span>
-                            Industry Sector
-                        </label>
+                        <label class="filter-label">Industry Sector</label>
                         <select id="filter-industry" class="filter-select">
                             <option value="">All Sectors</option>
                         </select>
@@ -294,7 +280,7 @@
                         <span id="alumni-result-label" style="font-size:0.78rem;color:var(--text-muted);font-weight:400;margin-left:0.75rem;"></span>
                     </div>
                     <input type="text" id="alumni-search" class="form-input"
-                        placeholder="🔍  Search by name or email..."
+                        placeholder="Search by name or email..."
                         style="max-width: 260px;">
                 </div>
                 <div style="overflow-x: auto;">
@@ -329,7 +315,7 @@
         <!-- Profile View -->
         <div id="view-profile" class="dashboard-view hidden">
             <div class="card profile-header-card" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; padding: 2rem;">
-                <div id="profile-avatar-large" style="width: 120px; height: 120px; border-radius: 50%; background: var(--accent-glow); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 3rem;">👤</div>
+                <div id="profile-avatar-large" style="width: 120px; height: 120px; border-radius: 50%; background: var(--accent-glow); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em;">—</div>
                 <div>
                     <h3 id="profile-full-name" style="font-size: 2rem; margin-bottom: 0.25rem;">—</h3>
                     <p id="profile-email-sub" style="color: var(--text-secondary); margin-bottom: 1rem;">—</p>
@@ -363,7 +349,7 @@
 
                 <!-- System Permissions -->
                 <div class="card">
-                    <div class="chart-title"><span>🛡️ System Permissions</span></div>
+                    <div class="chart-title"><span>System Permissions</span></div>
                     <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.25rem; line-height: 1.6;">
                         These are the scopes granted to this dashboard via the General Platform API key.
                     </p>
@@ -374,7 +360,7 @@
 
                 <!-- Reset Password -->
                 <div class="card">
-                    <div class="chart-title"><span>🔑 Reset Password</span></div>
+                    <div class="chart-title"><span>Reset Password</span></div>
                     <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6;">
                         We'll send a secure password reset link to your registered email address. The link expires after 15 minutes.
                     </p>
@@ -386,11 +372,11 @@
 
                 <!-- Email Verification -->
                 <div class="card">
-                    <div class="chart-title"><span>✉️ Email Verification</span></div>
+                    <div class="chart-title"><span>Email Verification</span></div>
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
                         <div>
                             <label style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Verification Status</label>
-                            <div id="verify-status-text" style="font-weight:500; color: var(--success);">✓ Verified</div>
+                            <div id="verify-status-text" style="font-weight:500; color: var(--success);">Verified</div>
                         </div>
                         <span id="verify-badge" class="status-badge" style="background:rgba(16,185,129,0.12);color:var(--success);">Active</span>
                     </div>
@@ -405,7 +391,7 @@
 
                 <!-- Session & Logout -->
                 <div class="card">
-                    <div class="chart-title"><span>🚪 Session</span></div>
+                    <div class="chart-title"><span>Session</span></div>
                     <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6;">
                         You are currently signed in. Logging out will clear your session and return you to the login page.
                     </p>
