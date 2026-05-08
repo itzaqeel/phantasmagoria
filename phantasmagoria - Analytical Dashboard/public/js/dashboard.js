@@ -73,22 +73,16 @@ async function handleResetPassword(e) {
     btn.disabled    = true;
     btn.textContent = 'Sending…';
 
-    const BASE = window.API_BASE || (window.API && window.API._base) || '';
     try {
-        const res = await fetch(`${BASE}/api/auth/forgot-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
-        const data = await res.json();
+        const { ok, data } = await API.post('/auth/forgot-password', { email });
         fb.style.display = 'block';
-        if (res.ok) {
+        if (ok) {
             fb.style.color   = 'var(--success)';
             fb.textContent   = '✓ Reset link sent — check your email inbox.';
             showProfileToast('✓ Password reset email sent!', 'success');
         } else {
             fb.style.color   = '#f87171';
-            fb.textContent   = data.message || 'Could not send reset email.';
+            fb.textContent   = data?.message || 'Could not send reset email.';
         }
     } catch {
         fb.style.display = 'block';
@@ -111,22 +105,16 @@ async function handleResendVerification(e) {
     btn.disabled    = true;
     btn.textContent = 'Sending…';
 
-    const BASE = window.API_BASE || (window.API && window.API._base) || '';
     try {
-        const res  = await fetch(`${BASE}/api/auth/resend-verification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
-        const data = await res.json();
+        const { ok, data } = await API.post('/auth/resend-verification', { email });
         fb.style.display = 'block';
-        if (res.ok) {
+        if (ok) {
             fb.style.color = 'var(--success)';
             fb.textContent = '✓ Verification email resent — check your inbox.';
             showProfileToast('✓ Verification email sent!', 'success');
         } else {
             fb.style.color = '#f87171';
-            fb.textContent = data.message || 'Could not resend verification email.';
+            fb.textContent = data?.message || 'Could not resend verification email.';
         }
     } catch {
         fb.style.display = 'block';
@@ -141,8 +129,7 @@ async function handleResendVerification(e) {
 async function handleProfileLogout(e) {
     if (e) e.preventDefault();
     try {
-        const BASE = window.API_BASE || (window.API && window.API._base) || '';
-        await fetch(`${BASE}/api/auth/logout`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        await API.post('/auth/logout');
     } catch(err) {
         console.error('Logout API failed:', err);
     }
