@@ -1,5 +1,9 @@
 # Phantasmagoria General Platform (CW1)
 
+**Author:** Aqeel Aslam  
+**IIT No:** 20220628  
+**UOW No:** w1953295  
+
 The General Platform serves as the primary backend API and user interface for the Phantasmagoria system. It handles user authentication, profile management, the alumni bidding engine, and issues API keys for external integrations.
 
 ## Setup Instructions

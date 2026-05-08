@@ -1,5 +1,9 @@
 # Phantasmagoria Ecosystem
 
+**Author:** Aqeel Aslam  
+**IIT No:** 20220628  
+**UOW No:** w1953295  
+
 The Phantasmagoria ecosystem is a dual-platform architecture designed to provide a robust, secure, and scalable environment for managing university alumni engagement and analyzing platform metrics.
 
 This repository is split into two distinct codebases representing different coursework components:

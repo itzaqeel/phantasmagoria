@@ -1,5 +1,9 @@
 # Phantasmagoria Analytical Dashboard (CW2)
 
+**Author:** Aqeel Aslam  
+**IIT No:** 20220628  
+**UOW No:** w1953295  
+
 The Analytical Dashboard is a dedicated frontend client designed to consume the General Platform (CW1) APIs to generate high-fidelity data visualizations, export PDF/CSV reports, and manage local filter presets.
 
 ## Setup Instructions
