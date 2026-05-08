@@ -94,7 +94,7 @@ async function runMidnightSelection() {
         }
 
         if (!actualWinner) {
-          console.log(`    All ${bids.length} bidders hit monthly limits. No winner.`);
+          console.log(`    All ${activeBidsForDate.length} bidders hit monthly limits. No winner.`);
           await connection.query("UPDATE bids SET STATUS = 'lost' WHERE bid_date = ?", [targetDate]);
           await connection.commit();
           continue;
