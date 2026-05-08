@@ -1184,8 +1184,12 @@ async function exportToPDF() {
     const includeOverview = document.getElementById('rep-overview')?.checked;
     const includeIndustry = document.getElementById('rep-industry')?.checked;
     const includeJobs     = document.getElementById('rep-jobs')?.checked;
+    const includeEmployers= document.getElementById('rep-employers')?.checked;
     const includeSkills   = document.getElementById('rep-skills')?.checked;
+    const includeCerts    = document.getElementById('rep-certs')?.checked;
+    const includeEmpStatus= document.getElementById('rep-empstatus')?.checked;
     const includeGrad     = document.getElementById('rep-grad')?.checked;
+    const includeDegree   = document.getElementById('rep-degree')?.checked;
 
     // Create a temporary container for the report
     const reportDiv = document.createElement('div');
@@ -1259,11 +1263,23 @@ async function exportToPDF() {
     if (includeJobs) {
         appendChart('Most Common Job Titles', 'aJobTitlesChart');
     }
+    if (includeEmployers) {
+        appendChart('Top Employers', 'aEmployersChart');
+    }
     if (includeSkills) {
         appendChart('Skills Gap Analysis', 'aSkillsGapChart');
     }
+    if (includeCerts) {
+        appendChart('Popular Certification Types', 'aCertTypesChart');
+    }
+    if (includeEmpStatus) {
+        appendChart('Current Employment Status', 'aEmpStatusChart');
+    }
     if (includeGrad) {
         appendChart('Graduation Trends', 'aGradChart');
+    }
+    if (includeDegree) {
+        appendChart('Degree Distribution', 'aDegreeBubble');
     }
 
     // Use html2pdf to generate the PDF from the temporary container
