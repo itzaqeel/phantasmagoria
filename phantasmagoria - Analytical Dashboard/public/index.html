@@ -361,7 +361,7 @@
                     <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6;">
                         We'll send a secure password reset link to your registered email address. The link expires after 15 minutes.
                     </p>
-                    <button id="btn-reset-password" class="btn btn-primary btn-sm" style="width:100%;" onclick="handleResetPassword()">
+                    <button id="btn-reset-password" class="btn btn-primary btn-sm" style="width:100%;">
                         Send Reset Link
                     </button>
                     <div id="reset-feedback" style="margin-top:0.75rem;font-size:0.82rem;display:none;"></div>
@@ -380,7 +380,7 @@
                     <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.5;">
                         If your email is not verified, you won't be able to access your account after logging out.
                     </p>
-                    <button id="btn-resend-verify" class="btn btn-secondary btn-sm" style="width:100%;" onclick="handleResendVerification()">
+                    <button id="btn-resend-verify" class="btn btn-secondary btn-sm" style="width:100%;">
                         Resend Verification Email
                     </button>
                     <div id="verify-feedback" style="margin-top:0.75rem;font-size:0.82rem;display:none;"></div>
@@ -392,7 +392,7 @@
                     <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6;">
                         You are currently signed in. Logging out will clear your session and return you to the login page.
                     </p>
-                    <button class="btn btn-sm" style="width:100%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;" onclick="handleProfileLogout()">
+                    <button id="profile-logout-btn" class="btn btn-sm" style="width:100%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;">
                         Logout
                     </button>
                 </div>

@@ -50,11 +50,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Export Handlers
     setupExportHandlers();
+
+    // Profile Action Handlers (attached securely via JS)
+    document.getElementById('btn-reset-password')?.addEventListener('click', handleResetPassword);
+    document.getElementById('btn-resend-verify')?.addEventListener('click', handleResendVerification);
+    document.getElementById('profile-logout-btn')?.addEventListener('click', handleProfileLogout);
 });
 
 // ── Profile Action Handlers ──────────────────────────────────────────────────
 
-async function handleResetPassword() {
+async function handleResetPassword(e) {
+    if (e) e.preventDefault();
     const user  = JSON.parse(localStorage.getItem('user') || '{}');
     const email = user.email;
     const btn   = document.getElementById('btn-reset-password');
@@ -91,7 +97,8 @@ async function handleResetPassword() {
     }
 }
 
-async function handleResendVerification() {
+async function handleResendVerification(e) {
+    if (e) e.preventDefault();
     const user  = JSON.parse(localStorage.getItem('user') || '{}');
     const email = user.email;
     const btn   = document.getElementById('btn-resend-verify');
@@ -128,7 +135,14 @@ async function handleResendVerification() {
     }
 }
 
-function handleProfileLogout() {
+async function handleProfileLogout(e) {
+    if (e) e.preventDefault();
+    try {
+        const BASE = window.API_BASE || (window.API && window.API._base) || '';
+        await fetch(`${BASE}/api/auth/logout`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    } catch(err) {
+        console.error('Logout API failed:', err);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = 'auth.html';
