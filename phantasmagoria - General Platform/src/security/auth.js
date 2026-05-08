@@ -49,9 +49,16 @@ async function verifyToken(req, res, next) {
 }
 
 /**
- * Security Guard: Validate API Bearer Token (for external clients like the AR app)
- * Logs usage to token_logs table
- * Checks if token has been revoked
+ * Security Guard: Validate API Bearer Token (for external clients like the AR app or Dashboard)
+ * 
+ * ALGORITHM:
+ * 1. Extract the raw Bearer token from the 'Authorization' header.
+ * 2. Hash the raw token using SHA-256 (matching the storage mechanism in adminController.js).
+ *    -> This ensures that even if the database is compromised, the raw tokens remain secure.
+ * 3. Query the `api_tokens` table for a matching hash that has NOT been revoked.
+ * 4. Log the usage (endpoint and IP) to `token_logs` for audit trails and security monitoring.
+ * 5. Update the `last_used_at` timestamp for active session tracking.
+ * 6. Inject the token metadata (including permissions) into `req.apiToken` for downstream middleware.
  */
 async function verifyApiToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -113,6 +120,13 @@ async function verifyDeveloper(req, res, next) {
   next();
 }
 
+/**
+ * Granular Permission Guard
+ * 
+ * Factory function that returns a middleware checking if the current API token 
+ * possesses a specific permission scope (e.g., 'read:alumni').
+ * Relies on `req.apiToken` being populated by `verifyApiToken`.
+ */
 function requirePermission(permission) {
   return (req, res, next) => {
     const raw   = req.apiToken.permissions;

@@ -55,7 +55,20 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'up', timestamp: new Date() });
 });
 
-// --- API Proxying Logic ---
+// --- API Proxying Architecture ---
+// 
+// Why do we proxy? 
+// 1. Security: We need to consume data from the General Platform (CW1), which requires
+//    a secret API Bearer Token. If the frontend (Vanilla JS) made these requests directly,
+//    the secret key would be exposed to the client's browser.
+// 2. CORS Bypass: By having our server make the request, we bypass browser CORS restrictions.
+// 
+// ALGORITHM:
+// 1. Intercept all `/api/analytics/*` traffic originating from the Dashboard UI.
+// 2. Read the `CW1_API_KEY` from the hidden `.env` file.
+// 3. Construct a new server-to-server request to `CW1_API_URL` using axios.
+// 4. Inject the Bearer Token into the headers.
+// 5. Stream the response back to the Dashboard UI seamlessly.
 
 // 1. Analytics Proxy (Requires API Key Injection)
 app.use('/api/analytics', async (req, res) => {
