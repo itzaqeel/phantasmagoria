@@ -1239,123 +1239,123 @@ function exportToCSV() {
 }
 
 async function exportToPDF() {
-    // Collect the user's choices from the modal
-    const includeOverview = document.getElementById('rep-overview')?.checked;
-    const includeIndustry = document.getElementById('rep-industry')?.checked;
-    const includeJobs     = document.getElementById('rep-jobs')?.checked;
-    const includeEmployers= document.getElementById('rep-employers')?.checked;
-    const includeSkills   = document.getElementById('rep-skills')?.checked;
-    const includeCerts    = document.getElementById('rep-certs')?.checked;
-    const includeEmpStatus= document.getElementById('rep-empstatus')?.checked;
-    const includeGrad     = document.getElementById('rep-grad')?.checked;
-    const includeDegree   = document.getElementById('rep-degree')?.checked;
+    const includeOverview  = document.getElementById('rep-overview')?.checked;
+    const includeIndustry  = document.getElementById('rep-industry')?.checked;
+    const includeJobs      = document.getElementById('rep-jobs')?.checked;
+    const includeEmployers = document.getElementById('rep-employers')?.checked;
+    const includeSkills    = document.getElementById('rep-skills')?.checked;
+    const includeCerts     = document.getElementById('rep-certs')?.checked;
+    const includeEmpStatus = document.getElementById('rep-empstatus')?.checked;
+    const includeGrad      = document.getElementById('rep-grad')?.checked;
+    const includeDegree    = document.getElementById('rep-degree')?.checked;
 
-    // Create a temporary container for the report
-    const reportDiv = document.createElement('div');
-    reportDiv.style.cssText = 'padding: 40px; background: #0f172a; color: #f8fafc; font-family: Inter, sans-serif;';
-    
-    // Header
-    const header = document.createElement('div');
-    header.innerHTML = `
-        <h1 style="color: #fbbf24; margin-bottom: 5px;">Phantasmagoria University</h1>
-        <h2 style="font-size: 1.5rem; margin-top: 0;">Custom Analytics Report</h2>
-        <p style="color: #94a3b8;">Generated on: ${new Date().toLocaleString()}</p>
-        <hr style="border-color: #334155; margin-bottom: 30px;">
-    `;
-    reportDiv.appendChild(header);
+    if (!window.html2pdf) {
+        showProfileToast('PDF library not loaded.', 'error');
+        return;
+    }
+    showProfileToast('Building PDF Report...', 'success');
 
-    // Helper to clone a chart canvas as an image
-    const appendChart = (title, canvasId) => {
-        const sourceCanvas = document.getElementById(canvasId);
-        if (!sourceCanvas) return;
-        
-        const section = document.createElement('div');
-        section.style.marginBottom = '40px';
-        section.innerHTML = `<h3 style="margin-bottom: 15px; border-left: 4px solid #06b6d4; padding-left: 10px;">${title}</h3>`;
-        
-        // We must draw it with a solid background because Chart.js defaults to transparent
-        const tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = sourceCanvas.width;
-        tmpCanvas.height = sourceCanvas.height;
-        const ctx = tmpCanvas.getContext('2d');
-        ctx.fillStyle = '#1e293b'; // card background
-        ctx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
-        ctx.drawImage(sourceCanvas, 0, 0);
-
-        const img = document.createElement('img');
-        img.src = tmpCanvas.toDataURL('image/png');
-        img.style.maxWidth = '100%';
-        img.style.borderRadius = '8px';
-        img.style.border = '1px solid #334155';
-        
-        section.appendChild(img);
-        reportDiv.appendChild(section);
+    // ── Scale a live canvas to a fixed width and return a data-URL
+    const canvasToDataUrl = (canvasId, targetWidth = 600) => {
+        const src = document.getElementById(canvasId);
+        if (!src || !src.width) return null;
+        const scale  = targetWidth / src.width;
+        const tmp    = document.createElement('canvas');
+        tmp.width    = targetWidth;
+        tmp.height   = Math.round(src.height * scale);
+        const ctx    = tmp.getContext('2d');
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, tmp.width, tmp.height);
+        ctx.drawImage(src, 0, 0, tmp.width, tmp.height);
+        return tmp.toDataURL('image/png');
     };
 
-    if (includeOverview) {
-        const stats = window._lastOverviewData || {};
-        const statDiv = document.createElement('div');
-        statDiv.style.marginBottom = '40px';
-        statDiv.innerHTML = `
-            <h3 style="margin-bottom: 15px; border-left: 4px solid #06b6d4; padding-left: 10px;">Overview Statistics</h3>
-            <ul style="list-style:none; padding:0; display:flex; gap:20px;">
-                <li style="background:#1e293b; padding:15px 25px; border-radius:8px; flex:1;">
-                    <div style="font-size:0.9rem; color:#94a3b8;">Total Alumni</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">${stats.totalAlumni || 0}</div>
-                </li>
-                <li style="background:#1e293b; padding:15px 25px; border-radius:8px; flex:1;">
-                    <div style="font-size:0.9rem; color:#94a3b8;">Total Certifications</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">${stats.totalCertifications || 0}</div>
-                </li>
-                <li style="background:#1e293b; padding:15px 25px; border-radius:8px; flex:1;">
-                    <div style="font-size:0.9rem; color:#94a3b8;">Total Degrees</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">${stats.totalDegrees || 0}</div>
-                </li>
-            </ul>
-        `;
-        reportDiv.appendChild(statDiv);
+    const C = 'background:#1e2235;border-radius:10px;padding:16px;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;';
+    const T = 'font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;';
+    const I = 'width:100%;height:auto;display:block;border-radius:6px;';
+
+    const chartCard = (title, id) => {
+        const url = canvasToDataUrl(id, 600);
+        if (!url) return '';
+        return `<div style="${C}"><div style="${T}">${title}</div><img src="${url}" style="${I}" /></div>`;
+    };
+
+    // Build chart list
+    const charts = [];
+    if (includeIndustry)  charts.push({ t: 'Employment by Industry Sector', id: 'aIndustryChart'  });
+    if (includeJobs)      charts.push({ t: 'Most Common Job Titles',         id: 'aJobTitlesChart' });
+    if (includeEmployers) charts.push({ t: 'Top Employers',                  id: 'aEmployersChart' });
+    if (includeSkills)    charts.push({ t: 'Curriculum Skills Gap',          id: 'aSkillsGapChart' });
+    if (includeCerts)     charts.push({ t: 'Certification Type Breakdown',   id: 'aCertTypesChart' });
+    if (includeEmpStatus) charts.push({ t: 'Current Employment Status',      id: 'aEmpStatusChart' });
+    if (includeGrad)      charts.push({ t: 'Graduation Year Trends',         id: 'aGradChart'      });
+    if (includeDegree)    charts.push({ t: 'Degree Distribution',            id: 'aDegreeBubble'   });
+
+    // 2-column grid rows
+    let gridHtml = '';
+    for (let i = 0; i < charts.length; i += 2) {
+        const pair = charts.slice(i, i + 2);
+        const cols = pair.length === 2 ? '1fr 1fr' : '1fr';
+        gridHtml += `<div style="display:grid;grid-template-columns:${cols};gap:14px;margin-bottom:14px;page-break-inside:avoid;break-inside:avoid;">
+            ${pair.map(c => chartCard(c.t, c.id)).join('')}
+        </div>`;
     }
 
-    if (includeIndustry) {
-        appendChart('Employment by Industry Sector', 'aIndustryChart');
-    }
-    if (includeJobs) {
-        appendChart('Most Common Job Titles', 'aJobTitlesChart');
-    }
-    if (includeEmployers) {
-        appendChart('Top Employers', 'aEmployersChart');
-    }
-    if (includeSkills) {
-        appendChart('Skills Gap Analysis', 'aSkillsGapChart');
-    }
-    if (includeCerts) {
-        appendChart('Popular Certification Types', 'aCertTypesChart');
-    }
-    if (includeEmpStatus) {
-        appendChart('Current Employment Status', 'aEmpStatusChart');
-    }
-    if (includeGrad) {
-        appendChart('Graduation Trends', 'aGradChart');
-    }
-    if (includeDegree) {
-        appendChart('Degree Distribution', 'aDegreeBubble');
-    }
+    const stats     = window._lastOverviewData || {};
+    const now       = new Date();
+    const dateStr   = now.toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+    const timeStr   = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 
-    // Use html2pdf to generate the PDF from the temporary container
-    if (window.html2pdf) {
-        const opt = {
-            margin:       10,
-            filename:     'Phantasmagoria_Custom_Report.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        showProfileToast('Generating PDF Report...', 'success');
-        html2pdf().set(opt).from(reportDiv).save();
-    } else {
-        showProfileToast('PDF library not loaded.', 'error');
+    const statsHtml = includeOverview ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="${C}text-align:center;"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Total Alumni</div><div style="font-size:2.2rem;font-weight:800;color:#fbbf24;">${stats.totalAlumni ?? '0'}</div></div>
+        <div style="${C}text-align:center;"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Total Certifications</div><div style="font-size:2.2rem;font-weight:800;color:#fbbf24;">${stats.totalCertifications ?? '0'}</div></div>
+        <div style="${C}text-align:center;"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Total Degrees</div><div style="font-size:2.2rem;font-weight:800;color:#fbbf24;">${stats.totalDegrees ?? '0'}</div></div>
+    </div>` : '';
+
+    const html = `
+    <div style="font-family:'Segoe UI',Arial,sans-serif;background:#0f1120;color:#f1f5f9;padding:32px;">
+        <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;padding:26px 32px;margin-bottom:24px;border-left:5px solid #fbbf24;page-break-inside:avoid;break-inside:avoid;">
+            <div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">Phantasmagoria Analytics and Intelligence Dashboard</div>
+            <div style="font-size:20px;font-weight:800;color:#f1f5f9;margin-bottom:4px;">Custom Analytics Report</div>
+            <div style="font-size:11px;color:#64748b;">Generated ${dateStr} at ${timeStr} &nbsp;&middot;&nbsp; University of Eastminster Alumni Network</div>
+        </div>
+        ${statsHtml}
+        ${gridHtml}
+        <div style="border-top:1px solid #1e2235;padding-top:12px;margin-top:6px;display:flex;justify-content:space-between;">
+            <span style="font-size:9px;color:#475569;">Phantasmagoria Analytics Dashboard &middot; Confidential</span>
+            <span style="font-size:9px;color:#475569;">${dateStr}</span>
+        </div>
+    </div>`;
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;';
+    document.body.appendChild(wrapper);
+
+    await new Promise(r => setTimeout(r, 250));
+
+    const opt = {
+        margin:      [8, 8, 8, 8],
+        filename:    'Phantasmagoria_Analytics_Report.pdf',
+        image:       { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f1120', logging: false },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    try {
+        await html2pdf().set(opt).from(wrapper.firstElementChild).save();
+        showProfileToast('PDF downloaded successfully.', 'success');
+    } catch (e) {
+        showProfileToast('PDF generation failed.', 'error');
+        console.error('PDF error:', e);
+    } finally {
+        document.body.removeChild(wrapper);
     }
 }
+
+
 
 // Inject chart download buttons
 function addDownloadIconsToCharts() {
