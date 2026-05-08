@@ -34,8 +34,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (view === 'profile') { renderProfileData(); }
             if (view === 'alumni') {
-                loadFilterOptions().then(() => setupAlumniFilterHandlers());
-                loadAlumniList({});
+                if (!window._alumniLoaded) {
+                    window._alumniLoaded = true;
+                    loadFilterOptions().then(() => setupAlumniFilterHandlers());
+                    loadAlumniList({});
+                }
             }
             if (view === 'analytics') {
                 loadAnalyticsCharts();
