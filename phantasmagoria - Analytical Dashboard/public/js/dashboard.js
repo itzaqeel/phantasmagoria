@@ -3,21 +3,23 @@
 document.addEventListener('DOMContentLoaded', async () => {
     initChartDefaults();
     await updateAppStatus();
-    
-    // View Switching Logic
+
+    // ── 1. Load permissions FIRST — everything else gates on this ───────────
+    await loadSystemPermissions();
+    applyPermissionGates();
+
+    // ── 2. View Switching Logic ──────────────────────────────────────────────
     document.querySelectorAll('.nav-link[data-view]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const view = link.getAttribute('data-view');
-            
-            // Update UI
+
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
-            
+
             document.querySelectorAll('.dashboard-view').forEach(v => v.classList.add('hidden'));
             document.getElementById(`view-${view}`)?.classList.remove('hidden');
-            
-            // Update Title
+
             const titleMap = {
                 'overview':  'University Intelligence Overview',
                 'analytics': 'Detailed Analytics',
@@ -25,15 +27,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'profile':   'My Account & Identity'
             };
             document.getElementById('view-title').textContent = titleMap[view] || 'Dashboard';
-            
-            // Toggle global actions visibility
+
             const actionsEl = document.getElementById('analytics-actions');
             if (actionsEl) {
-                actionsEl.style.display = (view === 'analytics') ? 'flex' : 'none';
+                actionsEl.style.display = (view === 'analytics' && hasPerm('read:analytics')) ? 'flex' : 'none';
             }
 
             if (view === 'profile') { renderProfileData(); }
             if (view === 'alumni') {
+                if (!hasPerm('read:alumni')) {
+                    renderAlumniNoPermission();
+                    return;
+                }
                 if (!window._alumniLoaded) {
                     window._alumniLoaded = true;
                     loadFilterOptions().then(() => setupAlumniFilterHandlers());
@@ -41,28 +46,83 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             if (view === 'analytics') {
-                loadAnalyticsCharts();
+                if (hasPerm('read:analytics')) loadAnalyticsCharts();
             }
         });
     });
 
-    
-    // Fetch real data immediately
+    // ── 3. Load overview data ────────────────────────────────────────────────
     await refreshDashboardData();
     await renderProfileData();
 
-    // Export Handlers
     setupExportHandlers();
     addDownloadIconsToCharts();
 
-    // Profile Action Handlers (attached securely via JS)
     document.getElementById('btn-reset-password')?.addEventListener('click', handleResetPassword);
     document.getElementById('btn-resend-verify')?.addEventListener('click', handleResendVerification);
     document.getElementById('profile-logout-btn')?.addEventListener('click', handleProfileLogout);
-
-    // Modal Close Handler
     document.getElementById('modal-close')?.addEventListener('click', closeAlumniModal);
 });
+
+// ── Permission Helpers ───────────────────────────────────────────────────────
+
+function hasPerm(scope) {
+    return Array.isArray(window._systemPermissions) && window._systemPermissions.includes(scope);
+}
+
+// Fetch and cache permissions into window._systemPermissions
+async function loadSystemPermissions() {
+    try {
+        const res = await API.get('/analytics/system-status');
+        if (res.ok && res.data?.permissions) {
+            let perms = res.data.permissions;
+            if (typeof perms === 'string') perms = JSON.parse(perms);
+            window._systemPermissions = Array.isArray(perms) ? perms : [];
+        } else {
+            window._systemPermissions = [];
+        }
+    } catch {
+        window._systemPermissions = [];
+    }
+}
+
+// Apply UI gates based on loaded permissions
+function applyPermissionGates() {
+    // ── Nav link visibility ──
+    const canAnalytics    = hasPerm('read:analytics');
+    const canAlumni       = hasPerm('read:alumni');
+    const canAlumniOfDay  = hasPerm('read:alumni_of_day');
+
+    // Hide Analytics nav if no read:analytics
+    document.querySelectorAll('.nav-link[data-view="analytics"]').forEach(el => {
+        el.closest('li')?.style.setProperty('display', canAnalytics ? '' : 'none');
+    });
+
+    // Hide Alumni nav if neither read:alumni nor read:alumni_of_day
+    document.querySelectorAll('.nav-link[data-view="alumni"]').forEach(el => {
+        el.closest('li')?.style.setProperty('display', (canAlumni || canAlumniOfDay) ? '' : 'none');
+    });
+
+    // Hide Export CSV/PDF buttons if no read:analytics
+    const actionsEl = document.getElementById('analytics-actions');
+    if (actionsEl && !canAnalytics) actionsEl.style.display = 'none';
+
+    // AOTD card — only show if read:alumni_of_day
+    const aotdCard = document.getElementById('aotd-card');
+    if (aotdCard && !canAlumniOfDay) aotdCard.style.display = 'none';
+}
+
+// Show a no-permission message inside the alumni view
+function renderAlumniNoPermission() {
+    const tbody = document.getElementById('alumni-list-body');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">Your API key does not have the <strong style="color:var(--accent);">read:alumni</strong> permission.</td></tr>`;
+
+    ['alumni-total-count','alumni-verified-count','alumni-profile-count'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '—';
+    });
+}
+
 
 // ── Profile Action Handlers ──────────────────────────────────────────────────
 
@@ -174,14 +234,21 @@ async function updateAppStatus() {
 }
 
 async function refreshDashboardData() {
-    const statsRes = await API.get('/analytics/overview');
-    if (statsRes.ok && statsRes.data) {
-        window._lastOverviewData = statsRes.data;
-        updateStats(statsRes.data);
-        renderOverviewCharts(statsRes.data);
+    if (hasPerm('read:analytics')) {
+        const statsRes = await API.get('/analytics/overview');
+        if (statsRes.ok && statsRes.data) {
+            window._lastOverviewData = statsRes.data;
+            updateStats(statsRes.data);
+            renderOverviewCharts(statsRes.data);
+        }
     }
-    // Fetch and render Alumni of the Day spotlight
-    loadAlumniOfTheDay();
+    // AOTD card — only if read:alumni_of_day
+    if (hasPerm('read:alumni_of_day')) {
+        loadAlumniOfTheDay();
+    } else {
+        const aotdCard = document.getElementById('aotd-card');
+        if (aotdCard) aotdCard.style.display = 'none';
+    }
 }
 
 function updateStats(data) {
@@ -810,9 +877,15 @@ async function loadFilterOptions() {
 }
 
 async function loadAlumniList(filters = {}) {
+    // Guard: require read:alumni permission
+    if (!hasPerm('read:alumni')) {
+        renderAlumniNoPermission();
+        return;
+    }
+
     const tbody    = document.getElementById('alumni-list-body');
     const resultLbl = document.getElementById('alumni-result-label');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">⏳ Loading alumni directory...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--text-muted);">Loading alumni directory...</td></tr>';
 
     const params = new URLSearchParams();
     if (filters.programme) params.set('programme', filters.programme);
