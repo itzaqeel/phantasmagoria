@@ -59,6 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-reset-password')?.addEventListener('click', handleResetPassword);
     document.getElementById('btn-resend-verify')?.addEventListener('click', handleResendVerification);
     document.getElementById('profile-logout-btn')?.addEventListener('click', handleProfileLogout);
+
+    // Modal Close Handler
+    document.getElementById('modal-close')?.addEventListener('click', closeAlumniModal);
 });
 
 // ── Profile Action Handlers ──────────────────────────────────────────────────
