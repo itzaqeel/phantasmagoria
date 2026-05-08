@@ -19,7 +19,5 @@ Thumbs.db
 # Documentation (optional, but usually excluded if large)
 *.pdf
 *.docx
-
-# Local IDE folders
-.vscode/
-.idea/
+*.zip
+docx_extracted/
